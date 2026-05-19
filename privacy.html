@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy — BETTERFEED</title>
+<link rel="icon" href="assets/icon-dark.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #000;
+    --fg: #f3f3f3;
+    --muted: #7a7a7a;
+    --border: rgba(255,255,255,0.10);
+    --accent: #4d8cff;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  html, body { background: var(--bg); color: var(--fg); }
+  body {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 14px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--fg); text-decoration: none; }
+  a:hover { color: var(--accent); }
+
+  nav {
+    position: sticky; top: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    z-index: 10;
+    padding: 18px 36px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: 0.06em; font-size: 12px; }
+  .brand .mark { width: 26px; height: 26px; display: block; filter: invert(1); }
+  nav .right { display: flex; gap: 28px; font-size: 11px; letter-spacing: 0.08em; }
+
+  .doc {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 80px 32px 120px;
+  }
+  .crumb { font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); margin-bottom: 28px; }
+  .crumb a { color: var(--muted); }
+  .crumb a:hover { color: var(--fg); }
+
+  h1 {
+    font-size: clamp(38px, 6vw, 64px);
+    font-weight: 700; line-height: 0.95;
+    letter-spacing: -0.035em;
+    margin-bottom: 18px;
+  }
+  .updated { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 56px; }
+
+  .tldr {
+    border: 1px solid var(--border);
+    background: #0a0a0a;
+    padding: 24px 26px;
+    margin-bottom: 64px;
+    display: flex; gap: 20px; align-items: flex-start;
+  }
+  .tldr .tag {
+    font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+    background: var(--accent); color: #001433;
+    padding: 4px 8px;
+    flex-shrink: 0;
+    font-weight: 700;
+  }
+  .tldr p { font-size: 14px; line-height: 1.65; color: #d4d4d4; }
+
+  h2 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    margin: 64px 0 18px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+  h2:first-of-type { border-top: none; padding-top: 0; }
+  h2 .num { color: var(--muted); margin-right: 14px; font-weight: 500; font-size: 16px; }
+
+  p { margin-bottom: 16px; color: #c5c5c5; }
+  .doc p strong { color: var(--fg); font-weight: 600; }
+
+  ul { margin: 0 0 20px 22px; }
+  ul li { margin-bottom: 8px; color: #c5c5c5; }
+  ul li::marker { color: var(--muted); }
+
+  code {
+    background: #161616;
+    padding: 1px 6px;
+    font-size: 12.5px;
+    border-radius: 2px;
+    color: #e8e8e8;
+  }
+
+  .end {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    font-size: 12px; color: var(--muted);
+    display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  }
+  .end a { color: var(--accent); }
+
+  @media (max-width: 720px) {
+    nav { padding: 14px 20px; }
+    .doc { padding: 56px 22px 80px; }
+    .tldr { flex-direction: column; gap: 14px; }
+  }
+</style>
+</head>
+<body>
+
+  <nav>
+    <a class="brand" href="index.html">
+      <img class="mark" src="assets/logo.png" alt="" aria-hidden="true">
+      BETTERFEED
+    </a>
+    <div class="right">
+      <a href="index.html">← Back to home</a>
+      <a href="mailto:hello@betterfeed.app">Contact</a>
+    </div>
+  </nav>
+
+  <main class="doc">
+    <div class="crumb"><a href="index.html">BETTERFEED</a> &nbsp;/&nbsp; Privacy</div>
+
+    <h1>Privacy<br>policy.</h1>
+    <div class="updated">Last updated · May 14, 2026</div>
+
+    <div class="tldr">
+      <div class="tag">TL;DR</div>
+      <p>
+        BETTERFEED runs entirely in your browser. It does not collect, store,
+        transmit, or sell any personal data. There is no server, no account,
+        no analytics, no third party. Your settings live on your device and
+        never leave it.
+      </p>
+    </div>
+
+    <h2 id="data"><span class="num">01</span>What we collect</h2>
+    <p>
+      <strong>Nothing.</strong> BETTERFEED has no backend infrastructure.
+      It does not contact any external server. It cannot — there is no
+      network code in the extension.
+    </p>
+    <p>
+      Specifically, BETTERFEED does <strong>not</strong> collect:
+    </p>
+    <ul>
+      <li>Personal information (name, email, address, phone, etc.)</li>
+      <li>Authentication info or session tokens</li>
+      <li>Browsing history or page contents</li>
+      <li>Your Instagram account, username, posts, DMs, or any feed data</li>
+      <li>Usage analytics, crash reports, or telemetry</li>
+      <li>Cookies, fingerprints, or device identifiers</li>
+      <li>Any data about you, ever, at all</li>
+    </ul>
+
+    <h2><span class="num">02</span>Where settings are stored</h2>
+    <p>
+      Your three toggle preferences — <em>Grayscale</em>, <em>Blur media</em>,
+      and <em>No autoplay</em> — are stored locally in
+      <code>chrome.storage.local</code> on your device. They are accessible
+      only to the BETTERFEED extension, on your machine. Removing the
+      extension deletes them.
+    </p>
+
+    <h2 id="permissions"><span class="num">03</span>Permissions, explained</h2>
+    <p>
+      When you install BETTERFEED, Chrome asks you to grant a small set
+      of permissions. Here is what each one is for and why we need it:
+    </p>
+    <ul>
+      <li>
+        <strong>Access to <code>instagram.com</code>:</strong> required to
+        inject a stylesheet (grayscale + blur) and a tiny script (autoplay
+        prevention) into the page. The extension does nothing on any
+        other site.
+      </li>
+      <li>
+        <strong><code>storage</code>:</strong> required so your toggle
+        preferences persist across page reloads.
+      </li>
+    </ul>
+    <p>
+      That's the entire permission set. BETTERFEED requests no host
+      permissions for any other domain.
+    </p>
+
+    <h2><span class="num">04</span>Third parties</h2>
+    <p>
+      None. BETTERFEED does not embed any third-party SDKs, analytics
+      libraries, advertising scripts, fonts, or tracking pixels.
+    </p>
+    <p>
+      Instagram itself, of course, has its own privacy practices —
+      BETTERFEED runs on top of Instagram in your browser, but does not
+      change or interact with Meta's data collection. We recommend
+      reviewing Instagram's privacy policy separately if that's a
+      concern.
+    </p>
+
+    <h2><span class="num">05</span>Children</h2>
+    <p>
+      BETTERFEED is a content-modification tool for an existing service
+      (Instagram). It does not collect any data from any user, regardless
+      of age. We do not knowingly do anything with children's data because
+      we do not do anything with anyone's data.
+    </p>
+
+    <h2><span class="num">06</span>Changes to this policy</h2>
+    <p>
+      If this policy ever changes, the "Last updated" date above will
+      change too. Substantive changes — for example, if BETTERFEED ever
+      began sending any data anywhere — would be announced in the
+      extension itself before they took effect.
+    </p>
+
+    <h2 id="contact"><span class="num">07</span>Contact</h2>
+    <p>
+      Questions, concerns, or requests? Email
+      <a href="mailto:hello@betterfeed.app" style="color: var(--accent);">hello@betterfeed.app</a>.
+      One human reads that inbox. They will reply.
+    </p>
+
+    <div class="end">
+      <div>© 2026 BETTERFEED · Not affiliated with Instagram or Meta.</div>
+      <a href="index.html">← Back to home</a>
+    </div>
+  </main>
+
+</body>
+</html>
