@@ -620,6 +620,9 @@
       grid-template-columns: 1fr 1fr;
       gap: 24px;
       margin-top: 40px;
+      max-width: 1000px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     .ba-col {
@@ -750,39 +753,10 @@
     .ig-photo {
       position: absolute;
       inset: 0;
-      background:
-        radial-gradient(ellipse at 18% 22%, #ffb347 0%, transparent 28%),
-        radial-gradient(ellipse at 78% 18%, #ff6b9d 0%, transparent 32%),
-        radial-gradient(ellipse at 32% 78%, #5a3a8f 0%, transparent 35%),
-        radial-gradient(ellipse at 80% 70%, #2e8bc0 0%, transparent 35%),
-        linear-gradient(160deg, #2e1a47 0%, #c44569 35%, #ff8c5a 65%, #2a3d4a 100%);
-    }
-
-    .ig-photo::before {
-      /* a "subject" silhouette + foreground details */
-      content: '';
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 55%;
-      background:
-        radial-gradient(ellipse at 50% 100%, rgba(20, 15, 30, 0.95) 0%, rgba(20, 15, 30, 0.6) 35%, transparent 70%),
-        radial-gradient(circle at 35% 60%, rgba(0, 0, 0, 0.55) 0%, transparent 38%),
-        radial-gradient(circle at 65% 70%, rgba(0, 0, 0, 0.45) 0%, transparent 32%);
-    }
-
-    .ig-photo::after {
-      /* tiny "sun" highlight */
-      content: '';
-      position: absolute;
-      top: 28%;
-      left: 62%;
-      width: 8%;
-      aspect-ratio: 1;
-      border-radius: 50%;
-      background: #fff4d6;
-      box-shadow: 0 0 60px rgba(255, 228, 170, 0.7);
+      background-image: url('assets/sample-post.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
     }
 
     .ig-actions {
@@ -2195,8 +2169,8 @@
 
   <section class="outro" data-particle-zone aria-label="Try the lens again">
     <div class="outro-inner">
-      <div class="outro-eyebrow">/ One more time</div>
-      <h2 class="outro-line">Move your cursor. <em>That's the whole pitch.</em></h2>
+      <div class="outro-eyebrow">/ in summary</div>
+      <h2 class="outro-line">Your attention is sacred. <em>Claim it back.</em></h2>
     </div>
   </section>
 
