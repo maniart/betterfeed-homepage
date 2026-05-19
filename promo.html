@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BETTERFEED — A calmer Instagram</title>
+  <link rel="icon" href="assets/icon-dark.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #000;
+      --fg: #f3f3f3;
+      --muted: #7a7a7a;
+      --border: rgba(255, 255, 255, 0.10);
+      --accent: #4d8cff;
+      --lens: 390px;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    html,
+    body {
+      background: var(--bg);
+      color: var(--fg);
+    }
+
+    body {
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 14px;
+      line-height: 1.55;
+      overflow-x: hidden;
+      cursor: auto;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body.in-zone,
+    body.in-zone * {
+      cursor: none;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    a:hover {
+      color: var(--accent);
+    }
+
+    /* ---------- the loud, colorful background ---------- */
+    .chaos {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background: #000;
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+    }
+
+    .noise {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      opacity: 0.12;
+      mix-blend-mode: overlay;
+    }
+
+    /* ---------- the lens (cursor) ---------- */
+    .lens {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: var(--lens);
+      height: var(--lens);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 60;
+      transform: translate3d(-9999px, -9999px, 0);
+      backdrop-filter: grayscale(1) blur(1px);
+      -webkit-backdrop-filter: grayscale(1) blur(1px);
+      border: 1.5px solid rgba(255, 255, 255, 0.55);
+      background: transparent;
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.25),
+        0 0 24px rgba(255, 255, 255, 0.15);
+      transition: width 0.25s ease, height 0.25s ease, opacity 0.2s;
+      mix-blend-mode: normal;
+    }
+
+    .lens::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 50%;
+      border: 1px dashed rgba(255, 255, 255, 0.55);
+      animation: spin 18s linear infinite;
+    }
+
+    .lens::after {
+      content: '';
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 14px var(--accent);
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .lens.hidden {
+      opacity: 0;
+    }
+
+    .lens.grow {
+      width: calc(var(--lens) * 1.2);
+      height: calc(var(--lens) * 1.2);
+    }
+
+    .cursor-dot {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ffffff;
+      pointer-events: none;
+      z-index: 70;
+      transform: translate3d(-9999px, -9999px, 0);
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.6),
+        0 0 8px rgba(255, 255, 255, 0.7);
+    }
+
+    .cursor-dot.hidden {
+      opacity: 0;
+    }
+
+    body.touch,
+    body.touch * {
+      cursor: auto !important;
+    }
+
+    body.touch .lens {
+      width: calc(var(--lens) / 2);
+      height: calc(var(--lens) / 2);
+      opacity: 0;
+      backdrop-filter: grayscale(1) blur(2px);
+      -webkit-backdrop-filter: grayscale(1) blur(2px);
+    }
+
+    body.touch.in-zone .lens {
+      opacity: 1;
+    }
+
+    body.touch .cursor-dot {
+      display: none;
+    }
+
+    /* ---------- hero ---------- */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      min-height: 100dvh;
+      z-index: 10;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 80px;
+      text-align: left;
+      padding: 14vh 6vw 12vh;
+      justify-content: center;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+    }
+
+    h1.wordmark {
+      font-size: clamp(72px, 17vw, 280px);
+      font-weight: 700;
+      line-height: 0.86;
+      letter-spacing: -0.045em;
+      color: white;
+      mix-blend-mode: difference;
+      margin-left: -0.075em;
+      flex-shrink: 0;
+    }
+
+    h1.wordmark .logo-mark {
+      display: inline-block;
+      width: 0.6em;
+      height: 0.6em;
+      vertical-align: middle;
+      margin-left: 30px;
+      filter: invert(1);
+      mix-blend-mode: difference;
+    }
+
+    .tag {
+      font-size: clamp(24px, 2.2vw, 32px);
+      max-width: 580px;
+      line-height: 1.45;
+      color: white;
+      mix-blend-mode: difference;
+    }
+
+    .cta-row {
+      margin-top: 36px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: white;
+      color: black;
+      padding: 14px 22px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid white;
+      cursor: none;
+      transition: all 0.2s ease;
+    }
+
+    body.touch .btn {
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      color: black;
+      background: #eaeaea;
+    }
+
+    .btn.ghost {
+      background: transparent;
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.45);
+    }
+
+    .btn.ghost:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: white;
+      border-color: white;
+    }
+
+    body.touch .btn:active {
+      transform: scale(0.98);
+    }
+
+    body.touch .btn.ghost:active {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    /* ---------- responsive ---------- */
+    @media (max-width: 860px) {
+      body {
+        font-size: 15px;
+      }
+
+      .hero {
+        padding-left: 20px;
+        padding-right: 20px;
+        padding-top: 16vh;
+        padding-bottom: 10vh;
+        min-height: 90vh;
+        min-height: 90dvh;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 32px;
+      }
+
+      h1.wordmark {
+        font-size: clamp(56px, 15vw, 120px);
+      }
+
+      .tag {
+        font-size: 18px;
+        line-height: 1.6;
+      }
+
+      .cta-row {
+        margin-top: 32px;
+        gap: 10px;
+      }
+
+      .btn {
+        padding: 16px 24px;
+        font-size: 13px;
+        min-height: 48px;
+        justify-content: center;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- loud, animated particle background -->
+  <canvas class="chaos" id="particles" aria-hidden="true"></canvas>
+  <div class="noise" aria-hidden="true"></div>
+
+  <!-- the lens follows the cursor -->
+  <div class="lens hidden" id="lens" aria-hidden="true"></div>
+  <div class="cursor-dot hidden" id="cursor-dot" aria-hidden="true"></div>
+
+  <section class="hero" id="top" data-particle-zone>
+    <h1 class="wordmark">BETTER<br>FEED<img class="logo-mark" src="assets/icon-light-lg.png" alt="" aria-hidden="true"></h1>
+
+    <p class="tag">
+      A harm-reduction Chrome extension that quiets down your Instagram feed so you can scroll with intention.
+    </p>
+  </section>
+
+  <script>
+    // ---------- tweak defaults ----------
+    var TWEAK_DEFAULTS = {
+      "particleCount": 520,
+      "speed": 1.3,
+      "particleSize": 1.0,
+      "trail": 0.1,
+      "shape": "mixed",
+      "lensSize": 390,
+      "glow": false
+    };
+    var cfg = Object.assign({}, TWEAK_DEFAULTS);
+
+    // sanitize legacy shape values
+    var VALID_SHAPES = ['mixed', 'heart', 'bookmark', 'send', 'tag'];
+    if (VALID_SHAPES.indexOf(cfg.shape) === -1) cfg.shape = 'mixed';
+  </script>
+
+  <script>
+    // ---------- particle system ----------
+    (function () {
+      var canvas = document.getElementById('particles');
+      var ctx = canvas.getContext('2d', { alpha: false });
+      var W = 0, H = 0, dpr = 1;
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        W = canvas.width = Math.floor(window.innerWidth * dpr);
+        H = canvas.height = Math.floor(window.innerHeight * dpr);
+        canvas.style.width = window.innerWidth + 'px';
+        canvas.style.height = window.innerHeight + 'px';
+        // initial wipe
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, W, H);
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      var PALETTE = ['#ffffff'];
+
+      // cursor state for repulsion
+      var cursor = window.__BF_CURSOR = { x: -9999, y: -9999, active: false };
+
+      // Instagram icon paths drawn in unit-space (-1..1), centered at origin.
+      var ICON_PATHS = (function () {
+        var heart = new Path2D();
+        heart.moveTo(0, -0.55);
+        heart.bezierCurveTo(-0.55, -1.15, -1.15, -0.55, -1.0, -0.05);
+        heart.bezierCurveTo(-0.85, 0.5, -0.35, 0.75, 0, 1.0);
+        heart.bezierCurveTo(0.35, 0.75, 0.85, 0.5, 1.0, -0.05);
+        heart.bezierCurveTo(1.15, -0.55, 0.55, -1.15, 0, -0.55);
+        heart.closePath();
+
+        var bookmark = new Path2D();
+        bookmark.moveTo(-0.7, -1.0);
+        bookmark.lineTo(0.7, -1.0);
+        bookmark.lineTo(0.7, 1.0);
+        bookmark.lineTo(0, 0.4);
+        bookmark.lineTo(-0.7, 1.0);
+        bookmark.closePath();
+
+        var send = new Path2D();
+        send.moveTo(-1.0, -0.78);
+        send.lineTo(1.0, 0);
+        send.lineTo(-1.0, 0.78);
+        send.lineTo(-0.25, 0);
+        send.closePath();
+
+        var tag = new Path2D();
+        tag.moveTo(0, -1.0);
+        tag.bezierCurveTo(0.5, -1.0, 0.5, -0.2, 0, -0.2);
+        tag.bezierCurveTo(-0.5, -0.2, -0.5, -1.0, 0, -1.0);
+        tag.moveTo(-0.95, 1.0);
+        tag.bezierCurveTo(-0.95, 0.15, -0.55, 0.05, 0, 0.05);
+        tag.bezierCurveTo(0.55, 0.05, 0.95, 0.15, 0.95, 1.0);
+        tag.closePath();
+
+        return { heart: heart, bookmark: bookmark, send: send, tag: tag };
+      })();
+      var ICON_SHAPES = ['heart', 'bookmark', 'send', 'tag'];
+      var particles = [];
+      function makeParticle() {
+        var shape = ICON_SHAPES[Math.floor(Math.random() * ICON_SHAPES.length)];
+        return {
+          x: Math.random() * W,
+          y: Math.random() * H,
+          vx: (Math.random() - 0.5) * 7 * dpr,
+          vy: (Math.random() - 0.5) * 7 * dpr,
+          r: (2 + Math.random() * 11) * dpr,
+          rot: Math.random() * Math.PI * 2,
+          vrot: (Math.random() - 0.5) * 0.12,
+          color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
+          shape: shape,
+          wobbleA: Math.random() * 0.08,
+          wobbleP: Math.random() * Math.PI * 2
+        };
+      }
+      function rebuild() {
+        var n = cfg.particleCount | 0;
+        if (particles.length > n) particles.length = n;
+        while (particles.length < n) particles.push(makeParticle());
+      }
+      rebuild();
+
+      var t = 0;
+      function frame() {
+        t++;
+
+        // motion blur trails: fill with translucent black
+        ctx.fillStyle = 'rgba(0,0,0,' + cfg.trail + ')';
+        ctx.fillRect(0, 0, W, H);
+
+        var speed = cfg.speed;
+        var sizeMul = cfg.particleSize;
+        var shapeCfg = cfg.shape;
+        var glow = !!cfg.glow;
+
+        // repulsion only fires when the lens script flagged the cursor as inside a particle zone
+        var repelOn = cursor.active;
+        var cx = cursor.x * dpr;
+        var cy = cursor.y * dpr;
+        var rad = (cfg.lensSize * 0.5) * dpr;
+        var rad2 = rad * rad;
+        var slowRad = rad * 1.6;
+        var slowRad2 = slowRad * slowRad;
+        var desatRad = rad * 2.4;
+        var desatBand = desatRad - rad;
+
+        // base + fully-desaturated colors for proximity tinting
+        var BG_R = 235, BG_G = 71, BG_B = 73;
+        var GRAY = 120;
+
+        ctx.globalCompositeOperation = 'source-over';
+
+        for (var i = 0; i < particles.length; i++) {
+          var p = particles[i];
+
+          // subtle wobble forces
+          p.vx += Math.sin(t * 0.013 + p.wobbleP) * p.wobbleA * 0.4;
+          p.vy += Math.cos(t * 0.011 + p.wobbleP) * p.wobbleA * 0.4;
+
+          // cursor repulsion
+          var desat = 0;
+          if (repelOn) {
+            var dx = p.x - cx;
+            var dy = p.y - cy;
+            var d2 = dx * dx + dy * dy;
+
+            if (d2 < rad2) {
+              desat = 1;
+            } else {
+              var dDesat = Math.sqrt(d2);
+              if (dDesat < desatRad) {
+                desat = 1 - (dDesat - rad) / desatBand;
+              }
+            }
+
+            if (d2 < slowRad2) {
+              var dSlow = Math.sqrt(d2);
+              var proxNorm = 1 - (dSlow / slowRad);
+              var damp = 1 - 0.5 * proxNorm;
+              p.vx *= damp;
+              p.vy *= damp;
+            }
+
+            if (d2 < rad2 && d2 > 0.0001) {
+              var d = Math.sqrt(d2);
+              var nx = dx / d;
+              var ny = dy / d;
+              var falloff = 1 - (d / rad);
+              var force = falloff * falloff * 2.6 * dpr;
+              p.vx += nx * force;
+              p.vy += ny * force;
+              p.x = cx + nx * rad;
+              p.y = cy + ny * rad;
+              var vDotN = p.vx * nx + p.vy * ny;
+              if (vDotN < 0) {
+                p.vx -= vDotN * nx * 1.6;
+                p.vy -= vDotN * ny * 1.6;
+              }
+            }
+          }
+
+          // soft damping
+          p.vx *= 0.995;
+          p.vy *= 0.995;
+
+          p.x += p.vx * speed;
+          p.y += p.vy * speed;
+          p.rot += p.vrot * speed;
+
+          // bounce off edges
+          if (p.x < 0) { p.x = 0; p.vx = Math.abs(p.vx); }
+          else if (p.x > W) { p.x = W; p.vx = -Math.abs(p.vx); }
+          if (p.y < 0) { p.y = 0; p.vy = Math.abs(p.vy); }
+          else if (p.y > H) { p.y = H; p.vy = -Math.abs(p.vy); }
+
+          var r = p.r * sizeMul;
+          var shape = ICON_PATHS[shapeCfg] ? shapeCfg : p.shape;
+
+          if (glow) {
+            ctx.shadowBlur = r * 2.2;
+            ctx.shadowColor = p.color;
+          } else {
+            ctx.shadowBlur = 0;
+          }
+          ctx.fillStyle = p.color;
+
+          var path = ICON_PATHS[shape];
+          if (path) {
+            var rCol, gCol, bCol;
+            if (desat > 0) {
+              var s = desat * desat * (3 - 2 * desat);
+              rCol = BG_R + (GRAY - BG_R) * s;
+              gCol = BG_G + (GRAY - BG_G) * s;
+              bCol = BG_B + (GRAY - BG_B) * s;
+            } else {
+              rCol = BG_R; gCol = BG_G; bCol = BG_B;
+            }
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.fillStyle = 'rgb(' + (rCol | 0) + ',' + (gCol | 0) + ',' + (bCol | 0) + ')';
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 1.35, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.rotate(p.rot);
+            ctx.scale(r * 0.72, r * 0.72);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill(path);
+            ctx.restore();
+          }
+        }
+
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.shadowBlur = 0;
+
+        raf = requestAnimationFrame(frame);
+      }
+      var raf = requestAnimationFrame(frame);
+
+      // expose for tweaks
+      window.__BF = { rebuild: rebuild };
+    })();
+  </script>
+
+  <script>
+    // ---------- cursor lens ----------
+    (function () {
+      var lens = document.getElementById('lens');
+      var dot = document.getElementById('cursor-dot');
+      var hasFinePointer = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
+      var isTouch = !hasFinePointer;
+      if (isTouch) {
+        document.body.classList.add('touch');
+      }
+      document.documentElement.style.setProperty('--lens', cfg.lensSize + 'px');
+
+      var zones = document.querySelectorAll('[data-particle-zone]');
+      var tx = window.innerWidth / 2, ty = window.innerHeight / 2;
+      var x = tx, y = ty;
+      var visible = false;
+      var inZone = false;
+      var pointerOnPage = false;
+      var cursorState = window.__BF_CURSOR;
+
+      function cursorOverZone(cx, cy) {
+        for (var i = 0; i < zones.length; i++) {
+          var r = zones[i].getBoundingClientRect();
+          if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) return true;
+        }
+        return false;
+      }
+
+      function refreshZone() {
+        var nowIn = pointerOnPage && cursorOverZone(tx, ty);
+        if (nowIn !== inZone) {
+          inZone = nowIn;
+          document.body.classList.toggle('in-zone', inZone);
+          if (cursorState) cursorState.active = inZone;
+          if (inZone) {
+            lens.classList.remove('hidden');
+            dot.classList.remove('hidden');
+          } else {
+            lens.classList.add('hidden');
+            dot.classList.add('hidden');
+          }
+        }
+      }
+
+      function loop() {
+        x += (tx - x) * 0.22;
+        y += (ty - y) * 0.22;
+        var size = lens.offsetWidth || parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--lens')) || 340;
+        lens.style.transform = 'translate3d(' + (x - size / 2) + 'px, ' + (y - size / 2) + 'px, 0)';
+        dot.style.transform = 'translate3d(' + (tx - 5) + 'px, ' + (ty - 5) + 'px, 0)';
+        requestAnimationFrame(loop);
+      }
+
+      window.addEventListener('mousemove', function (e) {
+        tx = e.clientX; ty = e.clientY;
+        pointerOnPage = true;
+        if (cursorState) { cursorState.x = e.clientX; cursorState.y = e.clientY; }
+        refreshZone();
+      }, { passive: true });
+
+      window.addEventListener('mouseleave', function () {
+        pointerOnPage = false;
+        refreshZone();
+      });
+      window.addEventListener('blur', function () {
+        pointerOnPage = false;
+        refreshZone();
+      });
+
+      window.addEventListener('scroll', refreshZone, { passive: true });
+      window.addEventListener('resize', refreshZone);
+
+      document.addEventListener('mousedown', function () { lens.classList.add('grow'); });
+      document.addEventListener('mouseup', function () { lens.classList.remove('grow'); });
+
+      // Touch event handlers for mobile drag
+      var touchActive = false;
+      document.addEventListener('touchstart', function (e) {
+        if (e.touches.length === 1) {
+          touchActive = true;
+          var touch = e.touches[0];
+          tx = touch.clientX;
+          ty = touch.clientY;
+          pointerOnPage = true;
+          if (cursorState) {
+            cursorState.x = touch.clientX;
+            cursorState.y = touch.clientY;
+          }
+          refreshZone();
+          lens.classList.add('grow');
+        }
+      }, { passive: true });
+
+      document.addEventListener('touchmove', function (e) {
+        if (touchActive && e.touches.length === 1) {
+          var touch = e.touches[0];
+          tx = touch.clientX;
+          ty = touch.clientY;
+          pointerOnPage = true;
+          if (cursorState) {
+            cursorState.x = touch.clientX;
+            cursorState.y = touch.clientY;
+          }
+          refreshZone();
+        }
+      }, { passive: true });
+
+      document.addEventListener('touchend', function () {
+        touchActive = false;
+        pointerOnPage = false;
+        lens.classList.remove('grow');
+        refreshZone();
+      }, { passive: true });
+
+      document.addEventListener('touchcancel', function () {
+        touchActive = false;
+        pointerOnPage = false;
+        lens.classList.remove('grow');
+        refreshZone();
+      }, { passive: true });
+
+      loop();
+    })();
+  </script>
+
+</body>
+
+</html>

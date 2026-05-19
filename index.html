@@ -4,6 +4,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YJ074XBBMT"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-YJ074XBBMT');
+  </script>
+
   <title>BETTERFEED — A calmer Instagram</title>
   <link rel="icon" href="assets/icon-dark.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -401,6 +411,16 @@
       margin-left: -0.075em;
     }
 
+    h1.wordmark .logo-mark {
+      display: inline-block;
+      width: 0.6em;
+      height: 0.6em;
+      vertical-align: middle;
+      margin-left: 30px;
+      filter: invert(1);
+      mix-blend-mode: difference;
+    }
+
     .tag {
       font-size: clamp(15px, 1.4vw, 19px);
       max-width: 580px;
@@ -622,9 +642,9 @@
     .ba-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 24px;
+      gap: 120px;
       margin-top: 40px;
-      max-width: 1000px;
+      max-width: 1100px;
       margin-left: auto;
       margin-right: auto;
     }
@@ -1495,11 +1515,18 @@
         grid-template-columns: 1fr;
         gap: 20px;
         margin-top: 32px;
+        max-width: none;
+        margin-left: -20px;
+        margin-right: -20px;
+      }
+
+      .ba-col {
+        padding: 0 20px;
       }
 
       .ig {
-        max-width: 420px;
-        margin: 0 auto;
+        max-width: none;
+        margin: 0 -20px;
       }
 
       .ig.after .ig-reveal-pill {
@@ -1731,6 +1758,16 @@
       .ba-grid {
         gap: 16px;
         margin-top: 24px;
+        margin-left: -16px;
+        margin-right: -16px;
+      }
+
+      .ba-col {
+        padding: 0 16px;
+      }
+
+      .ig {
+        margin: 0 -16px;
       }
 
       .rows {
@@ -1940,7 +1977,7 @@
   </nav>
 
   <section class="hero" id="top" data-particle-zone>
-    <h1 class="wordmark">BETTER<br>FEED.</h1>
+    <h1 class="wordmark">BETTER<br>FEED<img class="logo-mark" src="assets/icon-light-lg.png" alt="" aria-hidden="true"></h1>
 
     <p class="tag">
       A harm-reduction Chrome extension that quiets down your Instagram feed
@@ -2186,7 +2223,7 @@
           BETTERFEED
         </div>
         A harm-reduction Chrome extension for Instagram. Created by <a href="https://mani.io" class="creator-link">Mani
-          Nilchiani</a>, a designer who cares about your soul.
+          Nilchiani</a>, an interaction designer who cares about your soul.
       </div>
       <div>
         <h4>Product</h4>
