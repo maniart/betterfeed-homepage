@@ -1,943 +1,1835 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BETTERFEED — A calmer Instagram</title>
-<link rel="icon" href="assets/icon-dark.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #000;
-    --fg: #f3f3f3;
-    --muted: #7a7a7a;
-    --border: rgba(255,255,255,0.10);
-    --accent: #4d8cff;
-    --lens: 390px;
-  }
-  html {
-    scroll-behavior: smooth;
-  }
-  html, body { background: var(--bg); color: var(--fg); }
-  body {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 14px;
-    line-height: 1.55;
-    overflow-x: hidden;
-    cursor: auto;
-    -webkit-font-smoothing: antialiased;
-    -webkit-tap-highlight-color: transparent;
-  }
-  body.in-zone, body.in-zone * { cursor: none; }
-  a { color: inherit; text-decoration: none; }
-  a:hover { color: var(--accent); }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BETTERFEED — A calmer Instagram</title>
+  <link rel="icon" href="assets/icon-dark.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-  /* ---------- the loud, colorful background ---------- */
-  .chaos {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    background: #000;
-    display: block;
-    width: 100vw; height: 100vh; height: 100dvh;
-  }
+    :root {
+      --bg: #000;
+      --fg: #f3f3f3;
+      --muted: #7a7a7a;
+      --border: rgba(255, 255, 255, 0.10);
+      --accent: #4d8cff;
+      --lens: 390px;
+    }
 
-  .noise {
-    position: fixed; inset: 0; z-index: 1; pointer-events: none;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-    opacity: 0.12;
-    mix-blend-mode: overlay;
-  }
+    html {
+      scroll-behavior: smooth;
+    }
 
-  /* ---------- the lens (cursor) ---------- */
-  .lens {
-    position: fixed;
-    top: 0; left: 0;
-    width: var(--lens); height: var(--lens);
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 60;
-    transform: translate3d(-9999px, -9999px, 0);
-    backdrop-filter: grayscale(1) blur(1px);
-    -webkit-backdrop-filter: grayscale(1) blur(1px);
-    border: 1.5px solid rgba(255,255,255,0.55);
-    background: transparent;
-    box-shadow:
-      0 0 0 1px rgba(0,0,0,0.25),
-      0 0 24px rgba(255,255,255,0.15);
-    transition: width 0.25s ease, height 0.25s ease, opacity 0.2s;
-    mix-blend-mode: normal;
-  }
-  .lens::before {
-    content: '';
-    position: absolute; inset: -1px;
-    border-radius: 50%;
-    border: 1px dashed rgba(255,255,255,0.55);
-    animation: spin 18s linear infinite;
-  }
-  .lens::after {
-    content: '';
-    position: absolute;
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    box-shadow: 0 0 14px var(--accent);
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .lens.hidden { opacity: 0; }
-  .lens.grow { width: calc(var(--lens) * 1.2); height: calc(var(--lens) * 1.2); }
+    html,
+    body {
+      background: var(--bg);
+      color: var(--fg);
+    }
 
-  .cursor-dot {
-    position: fixed;
-    top: 0; left: 0;
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    background: #ffffff;
-    pointer-events: none;
-    z-index: 70;
-    transform: translate3d(-9999px, -9999px, 0);
-    box-shadow:
-      0 0 0 1px rgba(0,0,0,0.6),
-      0 0 8px rgba(255,255,255,0.7);
-  }
-  .cursor-dot.hidden { opacity: 0; }
+    body {
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 14px;
+      line-height: 1.55;
+      overflow-x: hidden;
+      cursor: auto;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-  body.touch, body.touch * { cursor: auto !important; }
-  body.touch .lens {
-    width: calc(var(--lens) / 2);
-    height: calc(var(--lens) / 2);
-    opacity: 0;
-    backdrop-filter: grayscale(1) blur(2px);
-    -webkit-backdrop-filter: grayscale(1) blur(2px);
-  }
-  body.touch.in-zone .lens {
-    opacity: 1;
-  }
-  body.touch .cursor-dot { display: none; }
+    body.in-zone,
+    body.in-zone * {
+      cursor: none;
+    }
 
-  /* ---------- nav ---------- */
-  nav {
-    position: fixed; top: 0; left: 0; right: 0;
-    z-index: 100;
-    padding: 18px 36px;
-    display: flex; justify-content: space-between; align-items: center;
-    background: #000;
-    border-bottom: 1px solid var(--border);
-  }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: 0.06em; font-size: 12px; color: white; }
-  .brand .mark { width: 26px; height: 26px; display: block; filter: invert(1); }
-  nav .right { display: flex; gap: 28px; font-size: 11px; letter-spacing: 0.08em; color: white; }
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
 
-  /* hamburger menu button */
-  .menu-btn {
-    display: none;
-    background: none;
-    border: none;
-    color: white;
-    cursor: pointer;
-    padding: 8px;
-    z-index: 151;
-    position: relative;
-    transition: color 0.2s ease;
-  }
-  .menu-btn:hover,
-  .menu-btn:active {
-    color: var(--accent);
-  }
-  .menu-btn svg {
-    width: 24px;
-    height: 24px;
-    stroke: currentColor;
-  }
-  .menu-btn svg line {
-    transition: transform 0.3s ease, opacity 0.3s ease;
-    transform-origin: center;
-  }
-  .menu-btn.open svg line:nth-child(1) {
-    transform: translateY(6px) rotate(45deg);
-  }
-  .menu-btn.open svg line:nth-child(2) {
-    opacity: 0;
-  }
-  .menu-btn.open svg line:nth-child(3) {
-    transform: translateY(-6px) rotate(-45deg);
-  }
+    a:hover {
+      color: var(--accent);
+    }
 
-  /* mobile menu overlay */
-  .mobile-menu {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: 280px;
-    background: #000;
-    border-left: 1px solid var(--border);
-    z-index: 150;
-    display: flex;
-    flex-direction: column;
-    padding: 80px 32px 32px;
-    transform: translateX(100%);
-    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: -8px 0 32px rgba(0,0,0,0.5);
-  }
-  .mobile-menu.open {
-    transform: translateX(0);
-  }
-  .mobile-menu a {
-    padding: 18px 0;
-    font-size: 15px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    font-weight: 600;
-    color: #d0d0d0;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    transition: color 0.2s ease, padding-left 0.2s ease;
-  }
-  .mobile-menu a:hover,
-  .mobile-menu a:active {
-    color: var(--accent);
-    padding-left: 8px;
-  }
-  .mobile-menu a:first-child {
-    border-top: 1px solid rgba(255,255,255,0.08);
-  }
+    /* ---------- the loud, colorful background ---------- */
+    .chaos {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background: #000;
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+    }
 
-  /* menu overlay backdrop */
-  .menu-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.75);
-    z-index: 149;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.35s ease;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-  }
-  .menu-backdrop.visible {
-    opacity: 1;
-    pointer-events: auto;
-  }
+    .noise {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      opacity: 0.12;
+      mix-blend-mode: overlay;
+    }
 
-  /* Hide menu elements on desktop */
-  @media (min-width: 861px) {
-    .mobile-menu,
-    .menu-backdrop {
+    /* ---------- the lens (cursor) ---------- */
+    .lens {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: var(--lens);
+      height: var(--lens);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 60;
+      transform: translate3d(-9999px, -9999px, 0);
+      backdrop-filter: grayscale(1) blur(1px);
+      -webkit-backdrop-filter: grayscale(1) blur(1px);
+      border: 1.5px solid rgba(255, 255, 255, 0.55);
+      background: transparent;
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.25),
+        0 0 24px rgba(255, 255, 255, 0.15);
+      transition: width 0.25s ease, height 0.25s ease, opacity 0.2s;
+      mix-blend-mode: normal;
+    }
+
+    .lens::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 50%;
+      border: 1px dashed rgba(255, 255, 255, 0.55);
+      animation: spin 18s linear infinite;
+    }
+
+    .lens::after {
+      content: '';
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 14px var(--accent);
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .lens.hidden {
+      opacity: 0;
+    }
+
+    .lens.grow {
+      width: calc(var(--lens) * 1.2);
+      height: calc(var(--lens) * 1.2);
+    }
+
+    .cursor-dot {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ffffff;
+      pointer-events: none;
+      z-index: 70;
+      transform: translate3d(-9999px, -9999px, 0);
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.6),
+        0 0 8px rgba(255, 255, 255, 0.7);
+    }
+
+    .cursor-dot.hidden {
+      opacity: 0;
+    }
+
+    body.touch,
+    body.touch * {
+      cursor: auto !important;
+    }
+
+    body.touch .lens {
+      width: calc(var(--lens) / 2);
+      height: calc(var(--lens) / 2);
+      opacity: 0;
+      backdrop-filter: grayscale(1) blur(2px);
+      -webkit-backdrop-filter: grayscale(1) blur(2px);
+    }
+
+    body.touch.in-zone .lens {
+      opacity: 1;
+    }
+
+    body.touch .cursor-dot {
       display: none;
     }
-  }
 
-  /* ---------- hero ---------- */
-  .hero {
-    position: relative;
-    min-height: 100vh; min-height: 100dvh;
-    z-index: 10;
-    display: flex; flex-direction: column;
-    align-items: flex-start;
-    text-align: left;
-    padding: 14vh 6vw 12vh;
-    justify-content: center;
-  }
-  .hero-meta {
-    position: absolute;
-    top: 88px;
-    left: 6vw; right: 6vw;
-    display: flex; justify-content: space-between;
-    font-size: 10px; letter-spacing: 0.22em;
-    color: white;
-    mix-blend-mode: difference;
-    text-transform: uppercase;
-  }
-  .hero-meta .dot { display:inline-block; width:6px; height:6px; border-radius:50%; background: var(--accent); margin-right:8px; vertical-align: middle; animation: pulse 1.6s ease-in-out infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
-
-  h1.wordmark {
-    font-size: clamp(72px, 17vw, 280px);
-    font-weight: 700;
-    line-height: 0.86;
-    letter-spacing: -0.045em;
-    color: white;
-    mix-blend-mode: difference;
-    /* optical alignment — JetBrains Mono has a noticeable left side-bearing at display sizes */
-    margin-left: -0.075em;
-  }
-  .tag {
-    font-size: clamp(15px, 1.4vw, 19px);
-    max-width: 580px;
-    line-height: 1.55;
-    margin-top: 36px;
-    color: white;
-    mix-blend-mode: difference;
-  }
-  .cta-row { margin-top: 36px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-  .btn {
-    display: inline-flex; align-items: center; gap: 10px;
-    background: white; color: black;
-    padding: 14px 22px;
-    font-family: inherit; font-size: 12px; font-weight: 700;
-    letter-spacing: 0.08em; text-transform: uppercase;
-    border: 1px solid white;
-    cursor: none;
-    transition: all 0.2s ease;
-  }
-  body.touch .btn { cursor: pointer; }
-  .btn:hover { color: black; background: #eaeaea; }
-  .btn.ghost { background: transparent; color: white; border: 1px solid rgba(255,255,255,0.45); }
-  .btn.ghost:hover { background: rgba(255,255,255,0.08); color: white; border-color: white; }
-  body.touch .btn:active { transform: scale(0.98); }
-  body.touch .btn.ghost:active { background: rgba(255,255,255,0.12); }
-
-  .hint {
-    position: absolute; left: 6vw; right: 6vw; bottom: 36px;
-    display: flex; justify-content: space-between; align-items: flex-end;
-    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
-    color: white; mix-blend-mode: difference;
-    gap: 24px;
-  }
-  .hint .l { max-width: 340px; }
-  .hint .r { text-align: right; max-width: 240px; }
-  .hint .lead { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-  .hint .sub { letter-spacing: 0.04em; text-transform: none; font-size: 11px; opacity: 0.7; }
-
-  /* ---------- below the fold ---------- */
-  .below {
-    position: relative;
-    z-index: 20;
-    background: #000;
-    padding: 140px 6vw 0;
-  }
-  .label {
-    font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase;
-    color: var(--muted); margin-bottom: 24px;
-    display: flex; align-items: center; gap: 10px;
-  }
-  .label::before {
-    content: ''; width: 24px; height: 1px; background: var(--muted);
-  }
-  .below h2 {
-    font-size: clamp(28px, 4.2vw, 56px);
-    font-weight: 500; line-height: 1.08; letter-spacing: -0.025em;
-    max-width: 920px; margin-bottom: 28px;
-  }
-  .below h2 em { font-style: normal; color: var(--muted); }
-
-  .lede {
-    max-width: 720px;
-    font-size: 16px; line-height: 1.65; color: #c2c2c2;
-    margin-bottom: 88px;
-  }
-  .lede + .lede { margin-top: -64px; }
-
-  /* features mirror the popup toggles */
-  .features {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
-    margin-bottom: 120px;
-  }
-  .feature {
-    border: 1px solid var(--border);
-    padding: 28px 26px 32px;
-    background: #0a0a0a;
-    display: flex; flex-direction: column;
-    min-height: 280px;
-  }
-  .feature .num { font-size: 10px; color: var(--muted); letter-spacing: 0.2em; margin-bottom: 18px; }
-  .feature .swatch {
-    width: 38px; height: 22px; border-radius: 999px; background: #1f1f1f;
-    position: relative; margin-bottom: 22px;
-    border: 1px solid #2a2a2a;
-  }
-  .feature .swatch::after {
-    content:''; position: absolute; top: 2px; right: 2px;
-    width: 16px; height: 16px; border-radius: 50%; background: var(--accent);
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.05);
-  }
-  .feature h3 { font-size: 20px; font-weight: 600; margin-bottom: 12px; letter-spacing: -0.01em; }
-  .feature p { font-size: 13px; line-height: 1.65; color: #999; }
-
-  /* before / after demo — Instagram post mock */
-  .ba { margin-bottom: 120px; }
-  .ba-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
-    margin-top: 40px;
-  }
-  .ba-col { display: flex; flex-direction: column; gap: 14px; }
-  .ba-tag {
-    font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
-    color: var(--muted);
-    display: flex; align-items: center; justify-content: center; gap: 10px;
-  }
-  .ba-tag .pip { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #2a2a2a; }
-  .ba-tag.alt { color: var(--fg); }
-  .ba-tag.alt .pip { background: var(--accent); }
-
-  /* the Instagram post itself */
-  .ig {
-    background: #000;
-    border: 1px solid #1f1f1f;
-    border-radius: 6px;
-    color: #fafafa;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 14px;
-    line-height: 1.35;
-    overflow: hidden;
-  }
-  .ig-head {
-    display: flex; align-items: center; gap: 12px;
-    padding: 12px 14px 12px 14px;
-  }
-  .ig-avatar {
-    width: 36px; height: 36px; border-radius: 50%;
-    flex-shrink: 0;
-    background:
-      conic-gradient(from 180deg, #2a4d3a 0%, #4a6e5a 30%, #1a3d2a 60%, #355a45 100%);
-    border: 1.5px solid #000;
-    box-shadow: 0 0 0 1.5px #404040;
-    position: relative;
-    overflow: hidden;
-  }
-  .ig-avatar::after {
-    content: '';
-    position: absolute; left: 50%; bottom: -8px;
-    width: 22px; height: 22px;
-    border-radius: 50%;
-    background: #d2a08a;
-    transform: translateX(-50%);
-  }
-  .ig-meta { flex: 1; min-width: 0; }
-  .ig-name-row { display: flex; align-items: center; gap: 6px; font-size: 14px; }
-  .ig-user { font-weight: 600; }
-  .ig-dot { color: #a8a8a8; }
-  .ig-time { color: #a8a8a8; font-weight: 400; }
-  .ig-loc { color: #fafafa; font-size: 13px; margin-top: 1px; }
-  .ig-more { color: #fafafa; padding: 0 4px; font-size: 22px; letter-spacing: 0.05em; line-height: 1; flex-shrink: 0; }
-
-  .ig-media {
-    aspect-ratio: 4 / 5;
-    width: 100%;
-    position: relative;
-    overflow: hidden;
-    background: #111;
-  }
-  .ig-photo {
-    position: absolute; inset: 0;
-    background:
-      radial-gradient(ellipse at 18% 22%, #ffb347 0%, transparent 28%),
-      radial-gradient(ellipse at 78% 18%, #ff6b9d 0%, transparent 32%),
-      radial-gradient(ellipse at 32% 78%, #5a3a8f 0%, transparent 35%),
-      radial-gradient(ellipse at 80% 70%, #2e8bc0 0%, transparent 35%),
-      linear-gradient(160deg, #2e1a47 0%, #c44569 35%, #ff8c5a 65%, #2a3d4a 100%);
-  }
-  .ig-photo::before {
-    /* a "subject" silhouette + foreground details */
-    content: '';
-    position: absolute; left: 0; right: 0; bottom: 0;
-    height: 55%;
-    background:
-      radial-gradient(ellipse at 50% 100%, rgba(20,15,30,0.95) 0%, rgba(20,15,30,0.6) 35%, transparent 70%),
-      radial-gradient(circle at 35% 60%, rgba(0,0,0,0.55) 0%, transparent 38%),
-      radial-gradient(circle at 65% 70%, rgba(0,0,0,0.45) 0%, transparent 32%);
-  }
-  .ig-photo::after {
-    /* tiny "sun" highlight */
-    content: '';
-    position: absolute;
-    top: 28%; left: 62%;
-    width: 8%; aspect-ratio: 1;
-    border-radius: 50%;
-    background: #fff4d6;
-    box-shadow: 0 0 60px rgba(255,228,170,0.7);
-  }
-
-  .ig-actions {
-    display: flex; align-items: center;
-    padding: 8px 12px 4px;
-    gap: 14px;
-  }
-  .ig-actions-left { display: flex; align-items: center; gap: 14px; flex: 1; }
-  .ig-btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: transparent; border: 0; color: #fafafa;
-    font-family: inherit; font-size: 14px; font-weight: 600;
-    padding: 4px 0;
-    cursor: none;
-  }
-  .ig-btn svg { display: block; width: 26px; height: 26px; stroke: #fafafa; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-  .ig-btn .count { font-weight: 600; }
-
-  .ig-likedby {
-    display: flex; align-items: center; gap: 8px;
-    padding: 4px 14px 2px;
-    font-size: 13px; color: #fafafa;
-  }
-  .ig-mini-avatars { display: flex; flex-shrink: 0; }
-  .ig-mini-avatars span {
-    width: 18px; height: 18px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #c44569 0%, #ffb347 100%);
-    border: 1.5px solid #000;
-    display: inline-block;
-  }
-  .ig-mini-avatars span + span { margin-left: -7px; background: linear-gradient(135deg, #4a6e5a 0%, #2e8bc0 100%); }
-  .ig-likedby b { font-weight: 600; }
-
-  .ig-caption {
-    padding: 4px 14px 14px;
-    font-size: 14px;
-    color: #fafafa;
-  }
-  .ig-caption b { font-weight: 600; }
-  .ig-caption .ig-more-link { color: #a8a8a8; cursor: none; }
-
-  /* "after" treatment — what BETTERFEED actually does */
-  .ig.after { filter: grayscale(1); }
-  .ig.after .ig-media { background: #0a0a0a; }
-  .ig.after .ig-photo { filter: blur(28px) brightness(0.85); transform: scale(1.06); }
-  .ig.after .ig-avatar { filter: blur(4px); }
-  .ig.after .ig-avatar::after { filter: blur(4px); }
-  .ig.after .ig-reveal {
-    position: absolute; inset: 0;
-    display: flex; align-items: center; justify-content: center;
-    pointer-events: none;
-    transition: opacity 0.25s;
-  }
-  .ig.after .ig-reveal-pill {
-    background: rgba(0,0,0,0.55);
-    border: 1px solid rgba(255,255,255,0.35);
-    color: #fff;
-    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
-    font-family: 'JetBrains Mono', monospace;
-    padding: 8px 14px;
-    border-radius: 999px;
-    backdrop-filter: blur(4px);
-  }
-  .ig.after .ig-media { cursor: pointer; }
-  .ig.after .ig-photo,
-  .ig.after .ig-avatar,
-  .ig.after .ig-avatar::after {
-    transition: filter 0.35s ease, transform 0.35s ease;
-  }
-  .ig.after { transition: filter 0.35s ease; }
-
-  /* revealed state — clears the BETTERFEED treatment for a few seconds */
-  .ig.after.revealed { filter: none; }
-  .ig.after.revealed .ig-photo { filter: none; transform: none; }
-  .ig.after.revealed .ig-avatar,
-  .ig.after.revealed .ig-avatar::after { filter: none; }
-  .ig.after.revealed .ig-reveal { opacity: 0; }
-
-  /* about / details rows */
-  .rows { display: grid; grid-template-columns: 220px 1fr; gap: 40px 80px; margin-bottom: 120px; }
-  .rows .k { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); padding-top: 6px; }
-  .rows .v { font-size: 15px; line-height: 1.7; color: #d0d0d0; border-top: 1px solid var(--border); padding-top: 24px; }
-  .rows .v a { color: var(--accent); border-bottom: 1px dotted var(--accent); }
-
-  /* outro band — transparent so the canvas peeks through */
-  .outro {
-    position: relative;
-    z-index: 20;
-    padding: 22vh 6vw;
-    display: flex; align-items: center;
-    background: transparent;
-  }
-  .outro-inner {
-    max-width: 760px;
-    color: white;
-    mix-blend-mode: difference;
-  }
-  .outro-eyebrow {
-    font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
-    margin-bottom: 18px;
-    display: flex; align-items: center; gap: 10px;
-  }
-  .outro-eyebrow::before { content:''; width: 22px; height: 1px; background: currentColor; opacity: 0.6; }
-  .outro h2.outro-line {
-    font-size: clamp(28px, 4vw, 56px);
-    font-weight: 500; line-height: 1.05; letter-spacing: -0.025em;
-    max-width: 18ch;
-  }
-  .outro h2.outro-line em { font-style: normal; opacity: 0.55; }
-  @media (max-width: 860px) {
-    .outro { padding: 18vh 22px; }
-  }
-
-  /* CTA strip */
-  .strip {
-    border: 1px solid var(--border);
-    padding: 56px 48px;
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 32px; flex-wrap: wrap;
-    margin-bottom: 80px;
-    background: #0a0a0a;
-  }
-  .strip h3 { font-size: clamp(22px, 2.4vw, 32px); font-weight: 500; letter-spacing: -0.02em; max-width: 640px; line-height: 1.2; }
-  .strip .ann { font-size: 11px; color: var(--muted); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 12px; }
-
-  /* footer */
-  footer { padding: 60px 6vw 28px; border-top: 1px solid var(--border); position: relative; z-index: 20; background: #000; }
-  .foot {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
-    gap: 40px;
-    margin-bottom: 60px;
-  }
-  .foot .brandblock { font-size: 12px; color: #999; max-width: 320px; line-height: 1.7; }
-  .foot .brandblock .brand { color: white; margin-bottom: 14px; }
-  .foot .brandblock .creator-link { color: white; border-bottom: 1px solid rgba(255,255,255,0.3); }
-  .foot .brandblock .creator-link:hover { color: var(--accent); border-color: var(--accent); }
-  .foot h4 { font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; font-weight: 600; }
-  .foot ul { list-style: none; }
-  .foot li { margin-bottom: 9px; font-size: 13px; }
-  .foot li a { color: #d0d0d0; }
-  .foot-bottom {
-    display: flex; justify-content: space-between; align-items: center;
-    padding-top: 22px; border-top: 1px solid var(--border);
-    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted);
-    gap: 16px; flex-wrap: wrap;
-  }
-
-  /* ---------- tweaks panel ---------- */
-  .tweaks {
-    position: fixed;
-    top: 76px;
-    right: 24px;
-    width: 320px;
-    background: #000;
-    border: 1px solid rgba(255,255,255,0.18);
-    z-index: 200;
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--fg);
-    display: none;
-    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
-    border-radius: 4px;
-  }
-  .tweaks.open { display: block; }
-  .tweaks, .tweaks * { cursor: auto; }
-  .tweaks button, .tweaks input[type="range"], .tweaks .seg-btn, .tweaks .toggle { cursor: pointer; }
-  .tw-head {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 18px;
-    border-bottom: 1px solid rgba(255,255,255,0.12);
-  }
-  .tw-head .ttl { font-size: 11px; letter-spacing: 0.18em; font-weight: 700; }
-  .tw-head .ico { width: 22px; height: 22px; }
-  .tw-head .close {
-    background: none; border: 0; color: var(--muted); font-family: inherit;
-    font-size: 16px; line-height: 1; padding: 4px 6px;
-  }
-  .tw-head .close:hover { color: white; }
-  .tw-head .right { display: flex; gap: 8px; align-items: center; }
-  .tw-body { padding: 6px 18px 16px; }
-  .tw-row { padding: 14px 0; border-bottom: 1px dashed rgba(255,255,255,0.08); }
-  .tw-row:last-child { border-bottom: 0; }
-  .tw-label {
-    font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
-    display: flex; justify-content: space-between; align-items: baseline;
-    margin-bottom: 4px;
-  }
-  .tw-label .val { color: var(--accent); font-weight: 500; font-size: 11px; }
-  .tw-desc { font-size: 10.5px; color: var(--muted); line-height: 1.5; margin-bottom: 10px; letter-spacing: 0.01em; }
-  .tw-row input[type="range"] {
-    -webkit-appearance: none; appearance: none;
-    width: 100%; height: 2px;
-    background: rgba(255,255,255,0.18);
-    outline: none;
-    margin: 4px 0;
-  }
-  .tw-row input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none; appearance: none;
-    width: 14px; height: 14px; border-radius: 50%;
-    background: var(--accent); border: 2px solid #000;
-    box-shadow: 0 0 0 1px var(--accent);
-  }
-  .tw-row input[type="range"]::-moz-range-thumb {
-    width: 12px; height: 12px; border-radius: 50%;
-    background: var(--accent); border: 2px solid #000;
-    box-shadow: 0 0 0 1px var(--accent);
-  }
-  .seg {
-    display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
-    border: 1px solid rgba(255,255,255,0.18);
-  }
-  .seg-btn {
-    background: transparent; border: 0; color: var(--fg);
-    font-family: inherit; font-size: 10.5px; letter-spacing: 0.12em;
-    padding: 8px 6px; text-transform: uppercase;
-    border-right: 1px solid rgba(255,255,255,0.12);
-  }
-  .seg-btn:last-child { border-right: 0; }
-  .seg-btn { padding: 7px 4px; display: inline-flex; align-items: center; justify-content: center; }
-  .seg-btn svg { display: block; }
-  .seg-btn[data-val="mixed"] { font-size: 10.5px; letter-spacing: 0.12em; }
-  .seg-btn.on { background: var(--accent); color: #001433; font-weight: 700; }
-
-  .tw-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-  .tw-toggle-row .tw-toggle-text { flex: 1; }
-  .toggle {
-    width: 36px; height: 20px;
-    border-radius: 999px;
-    background: #1f1f1f;
-    border: 1px solid #2a2a2a;
-    position: relative;
-    flex-shrink: 0;
-    transition: background 0.15s;
-  }
-  .toggle::after {
-    content:''; position: absolute; top: 1px; left: 1px;
-    width: 16px; height: 16px; border-radius: 50%;
-    background: #6a6a6a;
-    transition: transform 0.18s, background 0.15s;
-  }
-  .toggle.on { background: var(--accent); }
-  .toggle.on::after { background: #fff; transform: translateX(16px); }
-
-  body.tweaks-open .lens { opacity: 0; }
-
-  /* ---------- tweaks toggle button ---------- */
-  .tweaks-toggle {
-    position: fixed;
-    top: 50%;
-    right: 24px;
-    transform: translateY(-50%);
-    width: 48px;
-    height: 48px;
-    background: #000;
-    border: 1px solid rgba(255,255,255,0.18);
-    border-radius: 50%;
-    z-index: 199;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    transition: all 0.2s ease;
-    color: var(--fg);
-    font-size: 20px;
-  }
-  .tweaks-toggle:hover {
-    background: #111;
-    border-color: var(--accent);
-    box-shadow: 0 8px 32px rgba(77, 140, 255, 0.3);
-  }
-  .tweaks-toggle svg {
-    width: 24px;
-    height: 24px;
-    transition: transform 0.3s ease;
-  }
-  .tweaks-toggle.active svg {
-    transform: rotate(180deg);
-  }
-
-  /* responsive */
-  @media (max-width: 860px) {
-    body { font-size: 15px; }
-    nav { padding: 16px 20px; }
-    nav .right { display: none; }
-    .menu-btn { display: block; }
-    .brand { font-size: 13px; }
-    .brand .mark { width: 24px; height: 24px; }
-
-    .hero, .below { padding-left: 20px; padding-right: 20px; }
-    .hero { padding-top: 16vh; padding-bottom: 10vh; min-height: 90vh; min-height: 90dvh; }
-    .hero-meta { display: none; }
-    h1.wordmark { font-size: clamp(56px, 15vw, 120px); margin-bottom: 24px; }
-    .tag { font-size: 16px; line-height: 1.6; }
-    .cta-row { margin-top: 32px; gap: 10px; }
-    .btn {
-      padding: 16px 24px;
-      font-size: 13px;
-      min-height: 48px;
-      justify-content: center;
-      width: 100%;
+    /* ---------- nav ---------- */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 18px 36px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #000;
+      border-bottom: 1px solid var(--border);
     }
 
-    .below { padding-top: 60px; padding-bottom: 60px; }
-    .below h2 { font-size: clamp(32px, 8vw, 48px); margin-bottom: 20px; }
-    .lede { font-size: 15px; line-height: 1.7; }
-
-    .features {
-      grid-template-columns: 1fr;
-      gap: 16px;
-      margin-bottom: 80px;
-    }
-    .feature {
-      padding: 24px 22px 28px;
-      min-height: auto;
-    }
-    .feature h3 { font-size: 22px; margin-bottom: 10px; }
-    .feature p { font-size: 14px; line-height: 1.7; }
-
-    .ba { margin-bottom: 80px; }
-    .ba-grid {
-      grid-template-columns: 1fr;
-      gap: 20px;
-      margin-top: 32px;
-    }
-    .ig { max-width: 420px; margin: 0 auto; }
-    .ig.after .ig-reveal-pill {
-      padding: 12px 20px;
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
       font-size: 12px;
-      letter-spacing: 0.15em;
+      color: white;
     }
-    .ig.after .ig-media {
+
+    .brand .mark {
+      width: 26px;
+      height: 26px;
+      display: block;
+      filter: invert(1);
+    }
+
+    nav .right {
+      display: flex;
+      gap: 28px;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: white;
+    }
+
+    /* hamburger menu button */
+    .menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      color: white;
       cursor: pointer;
-      touch-action: manipulation;
+      padding: 8px;
+      z-index: 151;
+      position: relative;
+      transition: color 0.2s ease;
     }
 
-    .rows {
-      grid-template-columns: 1fr;
-      gap: 8px 0;
-      margin-bottom: 80px;
+    .menu-btn:hover,
+    .menu-btn:active {
+      color: var(--accent);
     }
-    .rows .v { padding-top: 12px; }
-    .rows .row { padding: 20px 0; }
-    .rows h3 { font-size: 16px; }
-    .rows p { font-size: 14px; line-height: 1.7; }
 
-    .outro {
-      padding: 48px 20px;
-      margin-bottom: 80px;
+    .menu-btn svg {
+      width: 24px;
+      height: 24px;
+      stroke: currentColor;
     }
-    .outro h2 { font-size: clamp(28px, 7vw, 42px); margin-bottom: 18px; }
-    .outro p { font-size: 14px; }
 
-    footer { padding: 48px 20px 24px; }
-    .foot {
-      grid-template-columns: 1fr 1fr;
-      gap: 32px 20px;
-      margin-bottom: 48px;
+    .menu-btn svg line {
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      transform-origin: center;
     }
-    .foot .brandblock {
-      grid-column: 1 / -1;
-      margin-bottom: 12px;
+
+    .menu-btn.open svg line:nth-child(1) {
+      transform: translateY(6px) rotate(45deg);
     }
-    .foot h4 { font-size: 10px; margin-bottom: 12px; }
-    .foot li { margin-bottom: 8px; font-size: 14px; }
-    .foot-bottom {
+
+    .menu-btn.open svg line:nth-child(2) {
+      opacity: 0;
+    }
+
+    .menu-btn.open svg line:nth-child(3) {
+      transform: translateY(-6px) rotate(-45deg);
+    }
+
+    /* mobile menu overlay */
+    .mobile-menu {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 280px;
+      background: #000;
+      border-left: 1px solid var(--border);
+      z-index: 150;
+      display: flex;
       flex-direction: column;
-      gap: 12px;
+      padding: 80px 32px 32px;
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
+    }
+
+    .mobile-menu.open {
+      transform: translateX(0);
+    }
+
+    .mobile-menu a {
+      padding: 18px 0;
+      font-size: 15px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: #d0d0d0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      transition: color 0.2s ease, padding-left 0.2s ease;
+    }
+
+    .mobile-menu a:hover,
+    .mobile-menu a:active {
+      color: var(--accent);
+      padding-left: 8px;
+    }
+
+    .mobile-menu a:first-child {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* menu overlay backdrop */
+    .menu-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 149;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+
+    .menu-backdrop.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Hide menu elements on desktop */
+    @media (min-width: 861px) {
+
+      .mobile-menu,
+      .menu-backdrop {
+        display: none;
+      }
+    }
+
+    /* ---------- hero ---------- */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      min-height: 100dvh;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
       align-items: flex-start;
+      text-align: left;
+      padding: 14vh 6vw 12vh;
+      justify-content: center;
+    }
+
+    .hero-meta {
+      position: absolute;
+      top: 88px;
+      left: 6vw;
+      right: 6vw;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      color: white;
+      mix-blend-mode: difference;
+      text-transform: uppercase;
+    }
+
+    .hero-meta .dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-right: 8px;
+      vertical-align: middle;
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0.25
+      }
+    }
+
+    h1.wordmark {
+      font-size: clamp(72px, 17vw, 280px);
+      font-weight: 700;
+      line-height: 0.86;
+      letter-spacing: -0.045em;
+      color: white;
+      mix-blend-mode: difference;
+      /* optical alignment — JetBrains Mono has a noticeable left side-bearing at display sizes */
+      margin-left: -0.075em;
+    }
+
+    .tag {
+      font-size: clamp(15px, 1.4vw, 19px);
+      max-width: 580px;
+      line-height: 1.55;
+      margin-top: 36px;
+      color: white;
+      mix-blend-mode: difference;
+    }
+
+    .cta-row {
+      margin-top: 36px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: white;
+      color: black;
+      padding: 14px 22px;
+      font-family: inherit;
       font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid white;
+      cursor: none;
+      transition: all 0.2s ease;
+    }
+
+    body.touch .btn {
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      color: black;
+      background: #eaeaea;
+    }
+
+    .btn.ghost {
+      background: transparent;
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.45);
+    }
+
+    .btn.ghost:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: white;
+      border-color: white;
+    }
+
+    body.touch .btn:active {
+      transform: scale(0.98);
+    }
+
+    body.touch .btn.ghost:active {
+      background: rgba(255, 255, 255, 0.12);
     }
 
     .hint {
-      flex-direction: column;
-      align-items: flex-start;
-      bottom: 24px;
-      left: 20px;
-      right: 20px;
+      position: absolute;
+      left: 6vw;
+      right: 6vw;
+      bottom: 36px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: white;
+      mix-blend-mode: difference;
+      gap: 24px;
     }
-    .hint .r { text-align: left; margin-top: 8px; }
 
-    .tweaks-toggle {
-      right: 16px;
-      width: 48px;
-      height: 48px;
-      top: auto;
-      bottom: 24px;
-      transform: none;
+    .hint .l {
+      max-width: 340px;
     }
-    .tweaks-toggle svg { width: 22px; height: 22px; }
-    .tweaks {
-      top: auto;
-      bottom: 84px;
-      right: 16px;
-      left: 16px;
-      width: auto;
-      max-width: none;
-      max-height: 60vh;
-      overflow-y: auto;
+
+    .hint .r {
+      text-align: right;
+      max-width: 240px;
     }
-    .tw-body {
-      max-height: calc(60vh - 60px);
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
+
+    .hint .lead {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
     }
-    .tw-row input[type="range"] {
-      height: 4px;
-      margin: 8px 0;
+
+    .hint .sub {
+      letter-spacing: 0.04em;
+      text-transform: none;
+      font-size: 11px;
+      opacity: 0.7;
     }
-    .tw-row input[type="range"]::-webkit-slider-thumb {
-      width: 18px;
-      height: 18px;
+
+    /* ---------- below the fold ---------- */
+    .below {
+      position: relative;
+      z-index: 20;
+      background: #000;
+      padding: 140px 6vw 0;
     }
-    .tw-row input[type="range"]::-moz-range-thumb {
+
+    .label {
+      font-size: 10px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .label::before {
+      content: '';
+      width: 24px;
+      height: 1px;
+      background: var(--muted);
+    }
+
+    .below h2 {
+      font-size: clamp(28px, 4.2vw, 56px);
+      font-weight: 500;
+      line-height: 1.08;
+      letter-spacing: -0.025em;
+      max-width: 920px;
+      margin-bottom: 28px;
+    }
+
+    .below h2 em {
+      font-style: normal;
+      color: var(--muted);
+    }
+
+    .lede {
+      max-width: 720px;
+      font-size: 16px;
+      line-height: 1.65;
+      color: #c2c2c2;
+      margin-bottom: 88px;
+    }
+
+    .lede+.lede {
+      margin-top: -64px;
+    }
+
+    /* features mirror the popup toggles */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-bottom: 120px;
+    }
+
+    .feature {
+      border: 1px solid var(--border);
+      padding: 28px 26px 32px;
+      background: #0a0a0a;
+      display: flex;
+      flex-direction: column;
+      min-height: 280px;
+    }
+
+    .feature .num {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.2em;
+      margin-bottom: 18px;
+    }
+
+    .feature .swatch {
+      width: 38px;
+      height: 22px;
+      border-radius: 999px;
+      background: #1f1f1f;
+      position: relative;
+      margin-bottom: 22px;
+      border: 1px solid #2a2a2a;
+    }
+
+    .feature .swatch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      right: 2px;
       width: 16px;
       height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
     }
-    .seg-btn {
-      padding: 10px 6px;
-      min-height: 44px;
-    }
-    .toggle {
-      width: 42px;
-      height: 24px;
-    }
-    .toggle::after {
-      width: 18px;
-      height: 18px;
-    }
-    .toggle.on::after {
-      transform: translateX(18px);
-    }
-  }
 
-  /* Extra small screens */
-  @media (max-width: 480px) {
-    body { font-size: 14px; }
-    nav { padding: 14px 16px; }
-    nav .right { gap: 16px; font-size: 11px; }
-
-    .mobile-menu {
-      width: 100%;
-      max-width: 320px;
-      padding: 72px 24px 24px;
+    .feature h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      letter-spacing: -0.01em;
     }
-    .mobile-menu a {
-      padding: 16px 0;
+
+    .feature p {
+      font-size: 13px;
+      line-height: 1.65;
+      color: #999;
+    }
+
+    /* before / after demo — Instagram post mock */
+    .ba {
+      margin-bottom: 120px;
+    }
+
+    .ba-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 40px;
+    }
+
+    .ba-col {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .ba-tag {
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .ba-tag .pip {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #2a2a2a;
+    }
+
+    .ba-tag.alt {
+      color: var(--fg);
+    }
+
+    .ba-tag.alt .pip {
+      background: var(--accent);
+    }
+
+    /* the Instagram post itself */
+    .ig {
+      background: #000;
+      border: 1px solid #1f1f1f;
+      border-radius: 6px;
+      color: #fafafa;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.35;
+      overflow: hidden;
+    }
+
+    .ig-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px 12px 14px;
+    }
+
+    .ig-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background:
+        conic-gradient(from 180deg, #2a4d3a 0%, #4a6e5a 30%, #1a3d2a 60%, #355a45 100%);
+      border: 1.5px solid #000;
+      box-shadow: 0 0 0 1.5px #404040;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ig-avatar::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      bottom: -8px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #d2a08a;
+      transform: translateX(-50%);
+    }
+
+    .ig-meta {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .ig-name-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       font-size: 14px;
     }
 
-    .hero, .below { padding-left: 16px; padding-right: 16px; }
-    .hero { padding-top: 14vh; }
-    h1.wordmark { font-size: clamp(48px, 13vw, 80px); }
-    .tag { font-size: 15px; }
-    .btn { padding: 14px 20px; font-size: 12px; }
+    .ig-user {
+      font-weight: 600;
+    }
 
-    .below { padding-top: 48px; padding-bottom: 48px; }
-    .features { margin-bottom: 60px; gap: 12px; }
-    .feature { padding: 20px 18px 24px; }
+    .ig-dot {
+      color: #a8a8a8;
+    }
 
-    .ba { margin-bottom: 60px; }
-    .ba-grid { gap: 16px; margin-top: 24px; }
+    .ig-time {
+      color: #a8a8a8;
+      font-weight: 400;
+    }
 
-    .rows { margin-bottom: 60px; }
-    .outro { padding: 36px 16px; margin-bottom: 60px; }
+    .ig-loc {
+      color: #fafafa;
+      font-size: 13px;
+      margin-top: 1px;
+    }
 
-    footer { padding: 36px 16px 20px; }
-    .foot { gap: 28px 16px; }
-    .foot-bottom { font-size: 11px; }
+    .ig-more {
+      color: #fafafa;
+      padding: 0 4px;
+      font-size: 22px;
+      letter-spacing: 0.05em;
+      line-height: 1;
+      flex-shrink: 0;
+    }
 
-    .hint { bottom: 20px; left: 16px; right: 16px; font-size: 12px; }
-    .tweaks-toggle { right: 12px; bottom: 20px; width: 44px; height: 44px; }
-    .tweaks { right: 12px; left: 12px; bottom: 76px; }
-    .tw-row { padding: 16px 0; }
-    .tw-label { font-size: 13px; margin-bottom: 6px; }
-    .tw-desc { font-size: 11px; margin-bottom: 12px; }
-  }
+    .ig-media {
+      aspect-ratio: 4 / 5;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+      background: #111;
+    }
 
-  /* Landscape phones */
-  @media (max-height: 600px) and (orientation: landscape) {
-    .hero { min-height: 100vh; padding-top: 100px; padding-bottom: 60px; }
-    .tweaks { max-height: 70vh; }
-    .tw-body { max-height: calc(70vh - 60px); }
-  }
-</style>
+    .ig-photo {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 18% 22%, #ffb347 0%, transparent 28%),
+        radial-gradient(ellipse at 78% 18%, #ff6b9d 0%, transparent 32%),
+        radial-gradient(ellipse at 32% 78%, #5a3a8f 0%, transparent 35%),
+        radial-gradient(ellipse at 80% 70%, #2e8bc0 0%, transparent 35%),
+        linear-gradient(160deg, #2e1a47 0%, #c44569 35%, #ff8c5a 65%, #2a3d4a 100%);
+    }
+
+    .ig-photo::before {
+      /* a "subject" silhouette + foreground details */
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 55%;
+      background:
+        radial-gradient(ellipse at 50% 100%, rgba(20, 15, 30, 0.95) 0%, rgba(20, 15, 30, 0.6) 35%, transparent 70%),
+        radial-gradient(circle at 35% 60%, rgba(0, 0, 0, 0.55) 0%, transparent 38%),
+        radial-gradient(circle at 65% 70%, rgba(0, 0, 0, 0.45) 0%, transparent 32%);
+    }
+
+    .ig-photo::after {
+      /* tiny "sun" highlight */
+      content: '';
+      position: absolute;
+      top: 28%;
+      left: 62%;
+      width: 8%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #fff4d6;
+      box-shadow: 0 0 60px rgba(255, 228, 170, 0.7);
+    }
+
+    .ig-actions {
+      display: flex;
+      align-items: center;
+      padding: 8px 12px 4px;
+      gap: 14px;
+    }
+
+    .ig-actions-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex: 1;
+    }
+
+    .ig-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      border: 0;
+      color: #fafafa;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 4px 0;
+      cursor: none;
+    }
+
+    .ig-btn svg {
+      display: block;
+      width: 26px;
+      height: 26px;
+      stroke: #fafafa;
+      fill: none;
+      stroke-width: 1.7;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .ig-btn .count {
+      font-weight: 600;
+    }
+
+    .ig-likedby {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 14px 2px;
+      font-size: 13px;
+      color: #fafafa;
+    }
+
+    .ig-mini-avatars {
+      display: flex;
+      flex-shrink: 0;
+    }
+
+    .ig-mini-avatars span {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #c44569 0%, #ffb347 100%);
+      border: 1.5px solid #000;
+      display: inline-block;
+    }
+
+    .ig-mini-avatars span+span {
+      margin-left: -7px;
+      background: linear-gradient(135deg, #4a6e5a 0%, #2e8bc0 100%);
+    }
+
+    .ig-likedby b {
+      font-weight: 600;
+    }
+
+    .ig-caption {
+      padding: 4px 14px 14px;
+      font-size: 14px;
+      color: #fafafa;
+    }
+
+    .ig-caption b {
+      font-weight: 600;
+    }
+
+    .ig-caption .ig-more-link {
+      color: #a8a8a8;
+      cursor: none;
+    }
+
+    /* "after" treatment — what BETTERFEED actually does */
+    .ig.after {
+      filter: grayscale(1);
+    }
+
+    .ig.after .ig-media {
+      background: #0a0a0a;
+    }
+
+    .ig.after .ig-photo {
+      filter: blur(28px) brightness(0.85);
+      transform: scale(1.06);
+    }
+
+    .ig.after .ig-avatar {
+      filter: blur(4px);
+    }
+
+    .ig.after .ig-avatar::after {
+      filter: blur(4px);
+    }
+
+    .ig.after .ig-reveal {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+
+    .ig.after .ig-reveal-pill {
+      background: rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      color: #fff;
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 8px 14px;
+      border-radius: 999px;
+      backdrop-filter: blur(4px);
+    }
+
+    .ig.after .ig-media {
+      cursor: pointer;
+    }
+
+    .ig.after .ig-photo,
+    .ig.after .ig-avatar,
+    .ig.after .ig-avatar::after {
+      transition: filter 0.35s ease, transform 0.35s ease;
+    }
+
+    .ig.after {
+      transition: filter 0.35s ease;
+    }
+
+    /* revealed state — clears the BETTERFEED treatment for a few seconds */
+    .ig.after.revealed {
+      filter: none;
+    }
+
+    .ig.after.revealed .ig-photo {
+      filter: none;
+      transform: none;
+    }
+
+    .ig.after.revealed .ig-avatar,
+    .ig.after.revealed .ig-avatar::after {
+      filter: none;
+    }
+
+    .ig.after.revealed .ig-reveal {
+      opacity: 0;
+    }
+
+    /* about / details rows */
+    .rows {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 40px 80px;
+      margin-bottom: 120px;
+    }
+
+    .rows .k {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding-top: 6px;
+    }
+
+    .rows .v {
+      font-size: 15px;
+      line-height: 1.7;
+      color: #d0d0d0;
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+    }
+
+    .rows .v a {
+      color: var(--accent);
+      border-bottom: 1px dotted var(--accent);
+    }
+
+    /* outro band — transparent so the canvas peeks through */
+    .outro {
+      position: relative;
+      z-index: 20;
+      padding: 22vh 6vw;
+      display: flex;
+      align-items: center;
+      background: transparent;
+    }
+
+    .outro-inner {
+      max-width: 760px;
+      color: white;
+      mix-blend-mode: difference;
+    }
+
+    .outro-eyebrow {
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .outro-eyebrow::before {
+      content: '';
+      width: 22px;
+      height: 1px;
+      background: currentColor;
+      opacity: 0.6;
+    }
+
+    .outro h2.outro-line {
+      font-size: clamp(28px, 4vw, 56px);
+      font-weight: 500;
+      line-height: 1.05;
+      letter-spacing: -0.025em;
+      max-width: 18ch;
+    }
+
+    .outro h2.outro-line em {
+      font-style: normal;
+      opacity: 0.55;
+    }
+
+    @media (max-width: 860px) {
+      .outro {
+        padding: 18vh 22px;
+      }
+    }
+
+    /* CTA strip */
+    .strip {
+      border: 1px solid var(--border);
+      padding: 56px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 32px;
+      flex-wrap: wrap;
+      margin-bottom: 80px;
+      background: #0a0a0a;
+    }
+
+    .strip h3 {
+      font-size: clamp(22px, 2.4vw, 32px);
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      max-width: 640px;
+      line-height: 1.2;
+    }
+
+    .strip .ann {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    /* footer */
+    footer {
+      padding: 60px 6vw 28px;
+      border-top: 1px solid var(--border);
+      position: relative;
+      z-index: 20;
+      background: #000;
+    }
+
+    .foot {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 60px;
+    }
+
+    .foot .brandblock {
+      font-size: 12px;
+      color: #999;
+      max-width: 320px;
+      line-height: 1.7;
+    }
+
+    .foot .brandblock .brand {
+      color: white;
+      margin-bottom: 14px;
+    }
+
+    .foot .brandblock .creator-link {
+      color: white;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .foot .brandblock .creator-link:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .foot h4 {
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+
+    .foot ul {
+      list-style: none;
+    }
+
+    .foot li {
+      margin-bottom: 9px;
+      font-size: 13px;
+    }
+
+    .foot li a {
+      color: #d0d0d0;
+    }
+
+    .foot-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 22px;
+      border-top: 1px solid var(--border);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    /* ---------- tweaks panel ---------- */
+    .tweaks {
+      position: fixed;
+      top: 76px;
+      right: 24px;
+      width: 320px;
+      background: #000;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      z-index: 200;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--fg);
+      display: none;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+      border-radius: 4px;
+    }
+
+    .tweaks.open {
+      display: block;
+    }
+
+    .tweaks,
+    .tweaks * {
+      cursor: auto;
+    }
+
+    .tweaks button,
+    .tweaks input[type="range"],
+    .tweaks .seg-btn,
+    .tweaks .toggle {
+      cursor: pointer;
+    }
+
+    .tw-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .tw-head .ttl {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      font-weight: 700;
+    }
+
+    .tw-head .ico {
+      width: 22px;
+      height: 22px;
+    }
+
+    .tw-head .close {
+      background: none;
+      border: 0;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 16px;
+      line-height: 1;
+      padding: 4px 6px;
+    }
+
+    .tw-head .close:hover {
+      color: white;
+    }
+
+    .tw-head .right {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .tw-body {
+      padding: 6px 18px 16px;
+    }
+
+    .tw-row {
+      padding: 14px 0;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+    }
+
+    .tw-row:last-child {
+      border-bottom: 0;
+    }
+
+    .tw-label {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 4px;
+    }
+
+    .tw-label .val {
+      color: var(--accent);
+      font-weight: 500;
+      font-size: 11px;
+    }
+
+    .tw-desc {
+      font-size: 10.5px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 10px;
+      letter-spacing: 0.01em;
+    }
+
+    .tw-row input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.18);
+      outline: none;
+      margin: 4px 0;
+    }
+
+    .tw-row input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid #000;
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    .tw-row input[type="range"]::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid #000;
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    .seg {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 1fr;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .seg-btn {
+      background: transparent;
+      border: 0;
+      color: var(--fg);
+      font-family: inherit;
+      font-size: 10.5px;
+      letter-spacing: 0.12em;
+      padding: 8px 6px;
+      text-transform: uppercase;
+      border-right: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .seg-btn:last-child {
+      border-right: 0;
+    }
+
+    .seg-btn {
+      padding: 7px 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .seg-btn svg {
+      display: block;
+    }
+
+    .seg-btn[data-val="mixed"] {
+      font-size: 10.5px;
+      letter-spacing: 0.12em;
+    }
+
+    .seg-btn.on {
+      background: var(--accent);
+      color: #001433;
+      font-weight: 700;
+    }
+
+    .tw-toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .tw-toggle-row .tw-toggle-text {
+      flex: 1;
+    }
+
+    .toggle {
+      width: 36px;
+      height: 20px;
+      border-radius: 999px;
+      background: #1f1f1f;
+      border: 1px solid #2a2a2a;
+      position: relative;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #6a6a6a;
+      transition: transform 0.18s, background 0.15s;
+    }
+
+    .toggle.on {
+      background: var(--accent);
+    }
+
+    .toggle.on::after {
+      background: #fff;
+      transform: translateX(16px);
+    }
+
+    body.tweaks-open .lens {
+      opacity: 0;
+    }
+
+    /* ---------- tweaks toggle button ---------- */
+    .tweaks-toggle {
+      position: fixed;
+      top: 50%;
+      right: 24px;
+      transform: translateY(-50%);
+      width: 48px;
+      height: 48px;
+      background: #000;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 50%;
+      z-index: 199;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      transition: all 0.2s ease;
+      color: var(--fg);
+      font-size: 20px;
+    }
+
+    .tweaks-toggle:hover {
+      background: #111;
+      border-color: var(--accent);
+      box-shadow: 0 8px 32px rgba(77, 140, 255, 0.3);
+    }
+
+    .tweaks-toggle svg {
+      width: 24px;
+      height: 24px;
+      transition: transform 0.3s ease;
+    }
+
+    .tweaks-toggle.active svg {
+      transform: rotate(180deg);
+    }
+
+    /* responsive */
+    @media (max-width: 860px) {
+      body {
+        font-size: 15px;
+      }
+
+      nav {
+        padding: 16px 20px;
+      }
+
+      nav .right {
+        display: none;
+      }
+
+      .menu-btn {
+        display: block;
+      }
+
+      .brand {
+        font-size: 13px;
+      }
+
+      .brand .mark {
+        width: 24px;
+        height: 24px;
+      }
+
+      .hero,
+      .below {
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+
+      .hero {
+        padding-top: 16vh;
+        padding-bottom: 10vh;
+        min-height: 90vh;
+        min-height: 90dvh;
+      }
+
+      .hero-meta {
+        display: none;
+      }
+
+      h1.wordmark {
+        font-size: clamp(56px, 15vw, 120px);
+        margin-bottom: 24px;
+      }
+
+      .tag {
+        font-size: 16px;
+        line-height: 1.6;
+      }
+
+      .cta-row {
+        margin-top: 32px;
+        gap: 10px;
+      }
+
+      .btn {
+        padding: 16px 24px;
+        font-size: 13px;
+        min-height: 48px;
+        justify-content: center;
+        width: 100%;
+      }
+
+      .below {
+        padding-top: 60px;
+        padding-bottom: 60px;
+      }
+
+      .below h2 {
+        font-size: clamp(32px, 8vw, 48px);
+        margin-bottom: 20px;
+      }
+
+      .lede {
+        font-size: 15px;
+        line-height: 1.7;
+      }
+
+      .features {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        margin-bottom: 80px;
+      }
+
+      .feature {
+        padding: 24px 22px 28px;
+        min-height: auto;
+      }
+
+      .feature h3 {
+        font-size: 22px;
+        margin-bottom: 10px;
+      }
+
+      .feature p {
+        font-size: 14px;
+        line-height: 1.7;
+      }
+
+      .ba {
+        margin-bottom: 80px;
+      }
+
+      .ba-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        margin-top: 32px;
+      }
+
+      .ig {
+        max-width: 420px;
+        margin: 0 auto;
+      }
+
+      .ig.after .ig-reveal-pill {
+        padding: 12px 20px;
+        font-size: 12px;
+        letter-spacing: 0.15em;
+      }
+
+      .ig.after .ig-media {
+        cursor: pointer;
+        touch-action: manipulation;
+      }
+
+      .rows {
+        grid-template-columns: 1fr;
+        gap: 8px 0;
+        margin-bottom: 80px;
+      }
+
+      .rows .v {
+        padding-top: 12px;
+      }
+
+      .rows .row {
+        padding: 20px 0;
+      }
+
+      .rows h3 {
+        font-size: 16px;
+      }
+
+      .rows p {
+        font-size: 14px;
+        line-height: 1.7;
+      }
+
+      .outro {
+        padding: 48px 20px;
+        margin-bottom: 80px;
+      }
+
+      .outro h2 {
+        font-size: clamp(28px, 7vw, 42px);
+        margin-bottom: 18px;
+      }
+
+      .outro p {
+        font-size: 14px;
+      }
+
+      footer {
+        padding: 48px 20px 24px;
+      }
+
+      .foot {
+        grid-template-columns: 1fr 1fr;
+        gap: 32px 20px;
+        margin-bottom: 48px;
+      }
+
+      .foot .brandblock {
+        grid-column: 1 / -1;
+        margin-bottom: 12px;
+      }
+
+      .foot h4 {
+        font-size: 10px;
+        margin-bottom: 12px;
+      }
+
+      .foot li {
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+
+      .foot-bottom {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+        font-size: 12px;
+      }
+
+      .hint {
+        flex-direction: column;
+        align-items: flex-start;
+        bottom: 24px;
+        left: 20px;
+        right: 20px;
+      }
+
+      .hint .r {
+        text-align: left;
+        margin-top: 8px;
+      }
+
+      .tweaks-toggle {
+        right: 16px;
+        width: 48px;
+        height: 48px;
+        top: auto;
+        bottom: 24px;
+        transform: none;
+      }
+
+      .tweaks-toggle svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      .tweaks {
+        top: auto;
+        bottom: 84px;
+        right: 16px;
+        left: 16px;
+        width: auto;
+        max-width: none;
+        max-height: 60vh;
+        overflow-y: auto;
+      }
+
+      .tw-body {
+        max-height: calc(60vh - 60px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .tw-row input[type="range"] {
+        height: 4px;
+        margin: 8px 0;
+      }
+
+      .tw-row input[type="range"]::-webkit-slider-thumb {
+        width: 18px;
+        height: 18px;
+      }
+
+      .tw-row input[type="range"]::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+      }
+
+      .seg-btn {
+        padding: 10px 6px;
+        min-height: 44px;
+      }
+
+      .toggle {
+        width: 42px;
+        height: 24px;
+      }
+
+      .toggle::after {
+        width: 18px;
+        height: 18px;
+      }
+
+      .toggle.on::after {
+        transform: translateX(18px);
+      }
+    }
+
+    /* Extra small screens */
+    @media (max-width: 480px) {
+      body {
+        font-size: 14px;
+      }
+
+      nav {
+        padding: 14px 16px;
+      }
+
+      nav .right {
+        gap: 16px;
+        font-size: 11px;
+      }
+
+      .mobile-menu {
+        width: 100%;
+        max-width: 320px;
+        padding: 72px 24px 24px;
+      }
+
+      .mobile-menu a {
+        padding: 16px 0;
+        font-size: 14px;
+      }
+
+      .hero,
+      .below {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .hero {
+        padding-top: 14vh;
+      }
+
+      h1.wordmark {
+        font-size: clamp(48px, 13vw, 80px);
+      }
+
+      .tag {
+        font-size: 15px;
+      }
+
+      .btn {
+        padding: 14px 20px;
+        font-size: 12px;
+      }
+
+      .below {
+        padding-top: 48px;
+        padding-bottom: 48px;
+      }
+
+      .features {
+        margin-bottom: 60px;
+        gap: 12px;
+      }
+
+      .feature {
+        padding: 20px 18px 24px;
+      }
+
+      .ba {
+        margin-bottom: 60px;
+      }
+
+      .ba-grid {
+        gap: 16px;
+        margin-top: 24px;
+      }
+
+      .rows {
+        margin-bottom: 60px;
+      }
+
+      .outro {
+        padding: 36px 16px;
+        margin-bottom: 60px;
+      }
+
+      footer {
+        padding: 36px 16px 20px;
+      }
+
+      .foot {
+        gap: 28px 16px;
+      }
+
+      .foot-bottom {
+        font-size: 11px;
+      }
+
+      .hint {
+        bottom: 20px;
+        left: 16px;
+        right: 16px;
+        font-size: 12px;
+      }
+
+      .tweaks-toggle {
+        right: 12px;
+        bottom: 20px;
+        width: 44px;
+        height: 44px;
+      }
+
+      .tweaks {
+        right: 12px;
+        left: 12px;
+        bottom: 76px;
+      }
+
+      .tw-row {
+        padding: 16px 0;
+      }
+
+      .tw-label {
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+
+      .tw-desc {
+        font-size: 11px;
+        margin-bottom: 12px;
+      }
+    }
+
+    /* Landscape phones */
+    @media (max-height: 600px) and (orientation: landscape) {
+      .hero {
+        min-height: 100vh;
+        padding-top: 100px;
+        padding-bottom: 60px;
+      }
+
+      .tweaks {
+        max-height: 70vh;
+      }
+
+      .tw-body {
+        max-height: calc(70vh - 60px);
+      }
+    }
+  </style>
 </head>
+
 <body>
 
   <!-- loud, animated particle background -->
@@ -953,7 +1845,8 @@
     <div class="tw-head">
       <div class="ttl">TWEAKS</div>
       <div class="right">
-        <img class="ico" src="assets/logo.png" alt="" aria-hidden="true" style="width:22px;height:22px;filter:invert(1);">
+        <img class="ico" src="assets/logo.png" alt="" aria-hidden="true"
+          style="width:22px;height:22px;filter:invert(1);">
         <button class="close" id="tw-close" aria-label="Close">✕</button>
       </div>
     </div>
@@ -989,16 +1882,26 @@
         <div class="seg" data-seg="shape">
           <button class="seg-btn" data-val="mixed">Mix</button>
           <button class="seg-btn" data-val="heart" title="Heart">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.4C.8 7.7 3.5 4 7 4c2 0 3.7 1 5 2.7C13.3 5 15 4 17 4c3.5 0 6.2 3.7 4.6 7.6C19.5 16.4 12 21 12 21z"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path
+                d="M12 21s-7.5-4.6-9.6-9.4C.8 7.7 3.5 4 7 4c2 0 3.7 1 5 2.7C13.3 5 15 4 17 4c3.5 0 6.2 3.7 4.6 7.6C19.5 16.4 12 21 12 21z" />
+            </svg>
           </button>
           <button class="seg-btn" data-val="bookmark" title="Save">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 3h12v18l-6-4.2L6 21V3z"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M6 3h12v18l-6-4.2L6 21V3z" />
+            </svg>
           </button>
           <button class="seg-btn" data-val="send" title="Share">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 2 2 10l8 2 2 8L22 2z"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M22 2 2 10l8 2 2 8L22 2z" />
+            </svg>
           </button>
           <button class="seg-btn" data-val="tag" title="Tag">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
+            </svg>
           </button>
         </div>
       </div>
@@ -1021,12 +1924,12 @@
   </aside>
 
   <!-- tweaks toggle button -->
-  <button class="tweaks-toggle" id="tweaks-toggle" aria-label="Toggle tweaks panel" title="Tweaks">
+  <!-- <button class="tweaks-toggle" id="tweaks-toggle" aria-label="Toggle tweaks panel" title="Tweaks">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="3"></circle>
       <path d="M12 1v6m0 6v6m5.2-13.2l-4.2 4.2m0 6l4.2 4.2M23 12h-6m-6 0H1m18.2 5.2l-4.2-4.2m0-6l4.2-4.2"></path>
     </svg>
-  </button>
+  </button> -->
 
   <!-- menu backdrop -->
   <div class="menu-backdrop" id="menu-backdrop"></div>
@@ -1049,7 +1952,8 @@
       <a href="privacy.html#contact">Contact</a>
     </div>
     <button class="menu-btn" id="menu-btn" aria-label="Toggle menu">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
         <line x1="3" y1="12" x2="21" y2="12"></line>
         <line x1="3" y1="6" x2="21" y2="6"></line>
         <line x1="3" y1="18" x2="21" y2="18"></line>
@@ -1061,9 +1965,8 @@
     <h1 class="wordmark">BETTER<br>FEED.</h1>
 
     <p class="tag">
-      A harm-reduction extension that quietly drains the color out of Instagram
-      and blurs the media — so you can scroll with intention,
-      not on autopilot.
+      A harm-reduction Chrome extension that quiets down your Instagram feed
+      so you can scroll with intention. Less autopilot doomscroll, more regulated nervous system.
     </p>
 
     <div class="cta-row">
@@ -1075,14 +1978,15 @@
   <section class="below" id="how">
 
     <div class="label">01 — What it does</div>
-    <h2>Instagram, but quieter. <em>No new feed, no algorithm, no shame — just three small switches that take the edge off.</em></h2>
+    <h2>Instagram, but quieter. <em> <br />3 tiny switches that tame the distraction machine.</em></h2>
 
     <p class="lede">
-      Most of what makes Instagram hard to leave isn't the content — it's the
-      saturation, the autoplay, the constant little visual hits.
+      Most of what makes Instagram hard to leave isn't the content — it's the coalition of highly optimized algorithms
+      and sophisticated design patterns that keep you scrolling long after you meant to. 
+    </p>
+    <p class="lede">
       BETTERFEED turns those down. It runs in your browser, on the page,
-      and never sees your data. You stay in control; the feed just stops
-      trying so hard.
+      and never sees your data. You stay in control; your feed stops yelling.
     </p>
 
     <div class="features">
@@ -1091,23 +1995,23 @@
         <div class="swatch"></div>
         <h3>Grayscale</h3>
         <p>Removes all color from the page. Stories, posts, chrome — every pixel.
-        Color is the cheapest dopamine on the internet; this takes it off the menu.</p>
+          Color is the cheapest dopamine on the internet; this takes it off the menu.</p>
       </div>
       <div class="feature">
         <div class="num">/ 02</div>
         <div class="swatch"></div>
         <h3>Blur media</h3>
         <p>Photos &amp; videos render blurred until you click to reveal one,
-        post by post. A tiny pause between you and the next image — usually
-        enough to decide you didn't need it.</p>
+          post by post. A tiny pause between you and the next image — usually
+          enough to decide you didn't need it.</p>
       </div>
       <div class="feature">
         <div class="num">/ 03</div>
         <div class="swatch"></div>
         <h3>No autoplay</h3>
         <p>Videos sit still until you press play. No motion in your peripheral
-        vision, no Reels-shaped wormhole opening up while you were trying to
-        check one message.</p>
+          vision, no Reels-shaped wormhole opening up while you were trying to
+          check one message.</p>
       </div>
     </div>
 
@@ -1137,23 +2041,39 @@
             <div class="ig-actions">
               <div class="ig-actions-left">
                 <button class="ig-btn" type="button" aria-label="Like">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.4C.8 7.7 3.5 4 7 4c2 0 3.7 1 5 2.7C13.3 5 15 4 17 4c3.5 0 6.2 3.7 4.6 7.6C19.5 16.4 12 21 12 21z"/></svg>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M12 21s-7.5-4.6-9.6-9.4C.8 7.7 3.5 4 7 4c2 0 3.7 1 5 2.7C13.3 5 15 4 17 4c3.5 0 6.2 3.7 4.6 7.6C19.5 16.4 12 21 12 21z" />
+                  </svg>
                   <span class="count">553</span>
                 </button>
                 <button class="ig-btn" type="button" aria-label="Comment">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-1 4 8.5 8.5 0 0 1-7.5 4.5 8.4 8.4 0 0 1-4-1L3 21l2-5.5a8.4 8.4 0 0 1-1-4 8.5 8.5 0 0 1 4.5-7.5 8.4 8.4 0 0 1 4-1A8.5 8.5 0 0 1 21 11.5z"/></svg>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M21 11.5a8.4 8.4 0 0 1-1 4 8.5 8.5 0 0 1-7.5 4.5 8.4 8.4 0 0 1-4-1L3 21l2-5.5a8.4 8.4 0 0 1-1-4 8.5 8.5 0 0 1 4.5-7.5 8.4 8.4 0 0 1 4-1A8.5 8.5 0 0 1 21 11.5z" />
+                  </svg>
                   <span class="count">20</span>
                 </button>
                 <button class="ig-btn" type="button" aria-label="Share">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M17 1l4 4-4 4" />
+                    <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                    <path d="M7 23l-4-4 4-4" />
+                    <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                  </svg>
                   <span class="count">2</span>
                 </button>
                 <button class="ig-btn" type="button" aria-label="Send">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M22 2 11 13" />
+                    <path d="M22 2l-7 20-4-9-9-4z" />
+                  </svg>
                 </button>
               </div>
               <button class="ig-btn" type="button" aria-label="Save">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16l7-5 7 5z"/></svg>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16l7-5 7 5z" />
+                </svg>
               </button>
             </div>
             <div class="ig-likedby">
@@ -1190,23 +2110,39 @@
             <div class="ig-actions">
               <div class="ig-actions-left">
                 <button class="ig-btn" type="button" aria-label="Like">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.4C.8 7.7 3.5 4 7 4c2 0 3.7 1 5 2.7C13.3 5 15 4 17 4c3.5 0 6.2 3.7 4.6 7.6C19.5 16.4 12 21 12 21z"/></svg>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M12 21s-7.5-4.6-9.6-9.4C.8 7.7 3.5 4 7 4c2 0 3.7 1 5 2.7C13.3 5 15 4 17 4c3.5 0 6.2 3.7 4.6 7.6C19.5 16.4 12 21 12 21z" />
+                  </svg>
                   <span class="count">553</span>
                 </button>
                 <button class="ig-btn" type="button" aria-label="Comment">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-1 4 8.5 8.5 0 0 1-7.5 4.5 8.4 8.4 0 0 1-4-1L3 21l2-5.5a8.4 8.4 0 0 1-1-4 8.5 8.5 0 0 1 4.5-7.5 8.4 8.4 0 0 1 4-1A8.5 8.5 0 0 1 21 11.5z"/></svg>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M21 11.5a8.4 8.4 0 0 1-1 4 8.5 8.5 0 0 1-7.5 4.5 8.4 8.4 0 0 1-4-1L3 21l2-5.5a8.4 8.4 0 0 1-1-4 8.5 8.5 0 0 1 4.5-7.5 8.4 8.4 0 0 1 4-1A8.5 8.5 0 0 1 21 11.5z" />
+                  </svg>
                   <span class="count">20</span>
                 </button>
                 <button class="ig-btn" type="button" aria-label="Share">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M17 1l4 4-4 4" />
+                    <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                    <path d="M7 23l-4-4 4-4" />
+                    <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                  </svg>
                   <span class="count">2</span>
                 </button>
                 <button class="ig-btn" type="button" aria-label="Send">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M22 2 11 13" />
+                    <path d="M22 2l-7 20-4-9-9-4z" />
+                  </svg>
                 </button>
               </div>
               <button class="ig-btn" type="button" aria-label="Save">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16l7-5 7 5z"/></svg>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16l7-5 7 5z" />
+                </svg>
               </button>
             </div>
             <div class="ig-likedby">
@@ -1227,16 +2163,21 @@
 
     <div class="rows">
       <div class="k">Where it runs</div>
-      <div class="v">Locally, in your browser, only on <code>instagram.com</code>. Nothing is sent to a server. There is no server.</div>
+      <div class="v">Locally, in your browser, only on <code>instagram.com</code>. Nothing is sent to a server. There is
+        no server.</div>
 
       <div class="k">What it collects</div>
-      <div class="v">Nothing. No accounts, no analytics, no tracking. Your toggle preferences live in <code>chrome.storage.local</code> and never leave the device. <a href="privacy.html">Read the privacy policy →</a></div>
+      <div class="v">Nothing. No accounts, no analytics, no tracking. Your toggle preferences live in
+        <code>chrome.storage.local</code> and never leave the device. <a href="privacy.html">Read the privacy policy
+          →</a></div>
 
       <div class="k">Permissions</div>
-      <div class="v">Just the ability to inject CSS &amp; a small script on instagram.com. That's it. No host permissions for any other site.</div>
+      <div class="v">Just the ability to inject CSS &amp; a small script on instagram.com. That's it. No host
+        permissions for any other site.</div>
 
       <div class="k">Open source</div>
-      <div class="v">The whole extension is a few hundred lines of CSS and JS. You can read it, audit it, or fork it. <a href="mailto:hello@betterfeed.app">Ask for the repo →</a></div>
+      <div class="v">The whole extension is a few hundred lines of CSS and JS. You can read it, audit it, or fork it. <a
+          href="mailto:hello@betterfeed.app">Ask for the repo →</a></div>
 
       <div class="k">Cost</div>
       <div class="v">Free. Always. This isn't a startup — it's a small tool I wished existed.</div>
@@ -1266,7 +2207,8 @@
           <img class="mark" src="assets/logo.png" alt="" aria-hidden="true">
           BETTERFEED
         </div>
-        A harm-reduction Chrome extension for Instagram. Created by <a href="#" class="creator-link">Mani Nilchiani</a>, a designer who cares about your soul.
+        A harm-reduction Chrome extension for Instagram. Created by <a href="https://mani.io" class="creator-link">Mani
+          Nilchiani</a>, a designer who cares about your soul.
       </div>
       <div>
         <h4>Product</h4>
@@ -1299,607 +2241,608 @@
     </div>
   </footer>
 
-<script>
-  // ---------- tweak defaults (rewritten on disk via __edit_mode_set_keys) ----------
-  var TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-    "particleCount": 520,
-    "speed": 1.3,
-    "particleSize": 1.0,
-    "trail": 0.1,
-    "shape": "mixed",
-    "lensSize": 390,
-    "glow": false
-  }/*EDITMODE-END*/;
-  var cfg = Object.assign({}, TWEAK_DEFAULTS);
+  <script>
+    // ---------- tweak defaults (rewritten on disk via __edit_mode_set_keys) ----------
+    var TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "particleCount": 520,
+      "speed": 1.3,
+      "particleSize": 1.0,
+      "trail": 0.1,
+      "shape": "mixed",
+      "lensSize": 390,
+      "glow": false
+    }/*EDITMODE-END*/;
+    var cfg = Object.assign({}, TWEAK_DEFAULTS);
 
-  // sanitize legacy shape values (pre-icon era)
-  var VALID_SHAPES = ['mixed','heart','bookmark','send','tag'];
-  if (VALID_SHAPES.indexOf(cfg.shape) === -1) cfg.shape = 'mixed';
-</script>
+    // sanitize legacy shape values (pre-icon era)
+    var VALID_SHAPES = ['mixed', 'heart', 'bookmark', 'send', 'tag'];
+    if (VALID_SHAPES.indexOf(cfg.shape) === -1) cfg.shape = 'mixed';
+  </script>
 
-<script>
-  // ---------- particle system ----------
-  (function () {
-    var canvas = document.getElementById('particles');
-    var ctx = canvas.getContext('2d', { alpha: false });
-    var W = 0, H = 0, dpr = 1;
+  <script>
+    // ---------- particle system ----------
+    (function () {
+      var canvas = document.getElementById('particles');
+      var ctx = canvas.getContext('2d', { alpha: false });
+      var W = 0, H = 0, dpr = 1;
 
-    function resize() {
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      W = canvas.width  = Math.floor(window.innerWidth  * dpr);
-      H = canvas.height = Math.floor(window.innerHeight * dpr);
-      canvas.style.width  = window.innerWidth  + 'px';
-      canvas.style.height = window.innerHeight + 'px';
-      // initial wipe
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, W, H);
-    }
-    resize();
-    window.addEventListener('resize', resize);
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        W = canvas.width = Math.floor(window.innerWidth * dpr);
+        H = canvas.height = Math.floor(window.innerHeight * dpr);
+        canvas.style.width = window.innerWidth + 'px';
+        canvas.style.height = window.innerHeight + 'px';
+        // initial wipe
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, W, H);
+      }
+      resize();
+      window.addEventListener('resize', resize);
 
-    var PALETTE = ['#ffffff'];
+      var PALETTE = ['#ffffff'];
 
-    // cursor state for repulsion — written to by the lens script.
-    // `active` is true ONLY while the cursor is inside a [data-particle-zone] element.
-    var cursor = window.__BF_CURSOR = { x: -9999, y: -9999, active: false };
+      // cursor state for repulsion — written to by the lens script.
+      // `active` is true ONLY while the cursor is inside a [data-particle-zone] element.
+      var cursor = window.__BF_CURSOR = { x: -9999, y: -9999, active: false };
 
-    // Instagram icon paths drawn in unit-space (-1..1), centered at origin.
-    // Each function gets a Path2D bound to a 2×2 box; we scale by r at draw time.
-    var ICON_PATHS = (function () {
-      // Heart — points down to make it visually upright when drawn
-      var heart = new Path2D();
-      heart.moveTo(0, -0.55);
-      heart.bezierCurveTo(-0.55, -1.15, -1.15, -0.55, -1.0, -0.05);
-      heart.bezierCurveTo(-0.85, 0.5, -0.35, 0.75, 0, 1.0);
-      heart.bezierCurveTo(0.35, 0.75, 0.85, 0.5, 1.0, -0.05);
-      heart.bezierCurveTo(1.15, -0.55, 0.55, -1.15, 0, -0.55);
-      heart.closePath();
+      // Instagram icon paths drawn in unit-space (-1..1), centered at origin.
+      // Each function gets a Path2D bound to a 2×2 box; we scale by r at draw time.
+      var ICON_PATHS = (function () {
+        // Heart — points down to make it visually upright when drawn
+        var heart = new Path2D();
+        heart.moveTo(0, -0.55);
+        heart.bezierCurveTo(-0.55, -1.15, -1.15, -0.55, -1.0, -0.05);
+        heart.bezierCurveTo(-0.85, 0.5, -0.35, 0.75, 0, 1.0);
+        heart.bezierCurveTo(0.35, 0.75, 0.85, 0.5, 1.0, -0.05);
+        heart.bezierCurveTo(1.15, -0.55, 0.55, -1.15, 0, -0.55);
+        heart.closePath();
 
-      // Bookmark / save flag
-      var bookmark = new Path2D();
-      bookmark.moveTo(-0.7, -1.0);
-      bookmark.lineTo(0.7, -1.0);
-      bookmark.lineTo(0.7, 1.0);
-      bookmark.lineTo(0, 0.4);
-      bookmark.lineTo(-0.7, 1.0);
-      bookmark.closePath();
+        // Bookmark / save flag
+        var bookmark = new Path2D();
+        bookmark.moveTo(-0.7, -1.0);
+        bookmark.lineTo(0.7, -1.0);
+        bookmark.lineTo(0.7, 1.0);
+        bookmark.lineTo(0, 0.4);
+        bookmark.lineTo(-0.7, 1.0);
+        bookmark.closePath();
 
-      // Send / paper-plane (pointing right)
-      var send = new Path2D();
-      send.moveTo(-1.0, -0.78);
-      send.lineTo(1.0, 0);
-      send.lineTo(-1.0, 0.78);
-      send.lineTo(-0.25, 0);
-      send.closePath();
+        // Send / paper-plane (pointing right)
+        var send = new Path2D();
+        send.moveTo(-1.0, -0.78);
+        send.lineTo(1.0, 0);
+        send.lineTo(-1.0, 0.78);
+        send.lineTo(-0.25, 0);
+        send.closePath();
 
-      // Tag / person silhouette: head + shoulders
-      var tag = new Path2D();
-      // head (circle approx via bezier)
-      tag.moveTo(0, -1.0);
-      tag.bezierCurveTo(0.5, -1.0, 0.5, -0.2, 0, -0.2);
-      tag.bezierCurveTo(-0.5, -0.2, -0.5, -1.0, 0, -1.0);
-      // shoulders (rounded dome)
-      tag.moveTo(-0.95, 1.0);
-      tag.bezierCurveTo(-0.95, 0.15, -0.55, 0.05, 0, 0.05);
-      tag.bezierCurveTo(0.55, 0.05, 0.95, 0.15, 0.95, 1.0);
-      tag.closePath();
+        // Tag / person silhouette: head + shoulders
+        var tag = new Path2D();
+        // head (circle approx via bezier)
+        tag.moveTo(0, -1.0);
+        tag.bezierCurveTo(0.5, -1.0, 0.5, -0.2, 0, -0.2);
+        tag.bezierCurveTo(-0.5, -0.2, -0.5, -1.0, 0, -1.0);
+        // shoulders (rounded dome)
+        tag.moveTo(-0.95, 1.0);
+        tag.bezierCurveTo(-0.95, 0.15, -0.55, 0.05, 0, 0.05);
+        tag.bezierCurveTo(0.55, 0.05, 0.95, 0.15, 0.95, 1.0);
+        tag.closePath();
 
-      return { heart: heart, bookmark: bookmark, send: send, tag: tag };
+        return { heart: heart, bookmark: bookmark, send: send, tag: tag };
+      })();
+      var ICON_SHAPES = ['heart', 'bookmark', 'send', 'tag'];
+      var particles = [];
+      function makeParticle() {
+        var shape = ICON_SHAPES[Math.floor(Math.random() * ICON_SHAPES.length)];
+        return {
+          x: Math.random() * W,
+          y: Math.random() * H,
+          vx: (Math.random() - 0.5) * 7 * dpr,
+          vy: (Math.random() - 0.5) * 7 * dpr,
+          r: (2 + Math.random() * 11) * dpr,
+          rot: Math.random() * Math.PI * 2,
+          vrot: (Math.random() - 0.5) * 0.12,
+          color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
+          shape: shape,
+          wobbleA: Math.random() * 0.08,
+          wobbleP: Math.random() * Math.PI * 2
+        };
+      }
+      function rebuild() {
+        var n = cfg.particleCount | 0;
+        if (particles.length > n) particles.length = n;
+        while (particles.length < n) particles.push(makeParticle());
+      }
+      rebuild();
+
+      var t = 0;
+      function frame() {
+        t++;
+
+        // motion blur trails: fill with translucent black
+        ctx.fillStyle = 'rgba(0,0,0,' + cfg.trail + ')';
+        ctx.fillRect(0, 0, W, H);
+
+        var speed = cfg.speed;
+        var sizeMul = cfg.particleSize;
+        var shapeCfg = cfg.shape;
+        var glow = !!cfg.glow;
+
+        // repulsion only fires when the lens script flagged the cursor as inside a particle zone
+        var repelOn = cursor.active;
+        var cx = cursor.x * dpr;
+        var cy = cursor.y * dpr;
+        var rad = (cfg.lensSize * 0.5) * dpr;
+        var rad2 = rad * rad;
+        var slowRad = rad * 1.6;
+        var slowRad2 = slowRad * slowRad;
+        // desaturation zone: wider than the slow zone, peaks AT the lens edge
+        // (since particles can't actually get inside the repelled lens).
+        var desatRad = rad * 2.4;
+        var desatBand = desatRad - rad; // distance from lens edge → no-desat outer edge
+
+        // base + fully-desaturated colors for proximity tinting
+        var BG_R = 235, BG_G = 71, BG_B = 73;
+        var GRAY = 120; // approx luminance of the brand red
+
+        ctx.globalCompositeOperation = 'source-over';
+
+        for (var i = 0; i < particles.length; i++) {
+          var p = particles[i];
+
+          // subtle wobble forces
+          p.vx += Math.sin(t * 0.013 + p.wobbleP) * p.wobbleA * 0.4;
+          p.vy += Math.cos(t * 0.011 + p.wobbleP) * p.wobbleA * 0.4;
+
+          // cursor repulsion — strong push out, plus a hard clamp so nothing slips inside.
+          // particles also slow down + desaturate inside an influence zone around the cursor.
+          var desat = 0;                      // 0 = full red, 1 = fully gray
+          if (repelOn) {
+            var dx = p.x - cx;
+            var dy = p.y - cy;
+            var d2 = dx * dx + dy * dy;
+
+            // desaturation: peaks at the lens edge (since particles can't enter),
+            // fades to 0 by desatRad. Anything inside the lens is fully gray.
+            if (d2 < rad2) {
+              desat = 1;
+            } else {
+              var dDesat = Math.sqrt(d2);
+              if (dDesat < desatRad) {
+                desat = 1 - (dDesat - rad) / desatBand;
+              }
+            }
+
+            if (d2 < slowRad2) {
+              var dSlow = Math.sqrt(d2);
+              var proxNorm = 1 - (dSlow / slowRad);
+              var damp = 1 - 0.5 * proxNorm;            // → 0.5× at center, 1× at edge
+              p.vx *= damp;
+              p.vy *= damp;
+            }
+
+            if (d2 < rad2 && d2 > 0.0001) {
+              var d = Math.sqrt(d2);
+              var nx = dx / d;
+              var ny = dy / d;
+              // force ramps up as you get closer to the center
+              var falloff = 1 - (d / rad);
+              var force = falloff * falloff * 2.6 * dpr;
+              p.vx += nx * force;
+              p.vy += ny * force;
+              // hard clamp to the edge of the lens, with a small velocity bias outward
+              p.x = cx + nx * rad;
+              p.y = cy + ny * rad;
+              // ensure outward velocity
+              var vDotN = p.vx * nx + p.vy * ny;
+              if (vDotN < 0) {
+                p.vx -= vDotN * nx * 1.6;
+                p.vy -= vDotN * ny * 1.6;
+              }
+            }
+          }
+
+          // soft damping so velocity doesn't blow up
+          p.vx *= 0.995;
+          p.vy *= 0.995;
+
+          p.x += p.vx * speed;
+          p.y += p.vy * speed;
+          p.rot += p.vrot * speed;
+
+          // bounce off edges
+          if (p.x < 0) { p.x = 0; p.vx = Math.abs(p.vx); }
+          else if (p.x > W) { p.x = W; p.vx = -Math.abs(p.vx); }
+          if (p.y < 0) { p.y = 0; p.vy = Math.abs(p.vy); }
+          else if (p.y > H) { p.y = H; p.vy = -Math.abs(p.vy); }
+
+          var r = p.r * sizeMul;
+          // resolve shape: if cfg.shape names a valid icon use it, else use this particle's own (mixed) shape
+          var shape = ICON_PATHS[shapeCfg] ? shapeCfg : p.shape;
+
+          if (glow) {
+            ctx.shadowBlur = r * 2.2;
+            ctx.shadowColor = p.color;
+          } else {
+            ctx.shadowBlur = 0;
+          }
+          ctx.fillStyle = p.color;
+
+          var path = ICON_PATHS[shape];
+          if (path) {
+            // proximity-based desaturation: lerp the red toward neutral gray.
+            var rCol, gCol, bCol;
+            if (desat > 0) {
+              var s = desat * desat * (3 - 2 * desat); // smoothstep
+              rCol = BG_R + (GRAY - BG_R) * s;
+              gCol = BG_G + (GRAY - BG_G) * s;
+              bCol = BG_B + (GRAY - BG_B) * s;
+            } else {
+              rCol = BG_R; gCol = BG_G; bCol = BG_B;
+            }
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            // circle background — slightly larger than the icon
+            ctx.fillStyle = 'rgb(' + (rCol | 0) + ',' + (gCol | 0) + ',' + (bCol | 0) + ')';
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 1.35, 0, Math.PI * 2);
+            ctx.fill();
+            // white icon on top — scaled smaller for more padding inside the circle
+            ctx.rotate(p.rot);
+            ctx.scale(r * 0.72, r * 0.72);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill(path);
+            ctx.restore();
+          }
+        }
+
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.shadowBlur = 0;
+
+        raf = requestAnimationFrame(frame);
+      }
+      var raf = requestAnimationFrame(frame);
+
+      // expose for tweaks
+      window.__BF = { rebuild: rebuild };
     })();
-    var ICON_SHAPES = ['heart','bookmark','send','tag'];
-    var particles = [];
-    function makeParticle() {
-      var shape = ICON_SHAPES[Math.floor(Math.random() * ICON_SHAPES.length)];
-      return {
-        x: Math.random() * W,
-        y: Math.random() * H,
-        vx: (Math.random() - 0.5) * 7 * dpr,
-        vy: (Math.random() - 0.5) * 7 * dpr,
-        r:  (2 + Math.random() * 11) * dpr,
-        rot: Math.random() * Math.PI * 2,
-        vrot: (Math.random() - 0.5) * 0.12,
-        color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
-        shape: shape,
-        wobbleA: Math.random() * 0.08,
-        wobbleP: Math.random() * Math.PI * 2
-      };
-    }
-    function rebuild() {
-      var n = cfg.particleCount | 0;
-      if (particles.length > n) particles.length = n;
-      while (particles.length < n) particles.push(makeParticle());
-    }
-    rebuild();
+  </script>
 
-    var t = 0;
-    function frame() {
-      t++;
+  <script>
+    // ---------- cursor lens ----------
+    (function () {
+      var lens = document.getElementById('lens');
+      var dot = document.getElementById('cursor-dot');
+      var hasFinePointer = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
+      var isTouch = !hasFinePointer;
+      if (isTouch) {
+        document.body.classList.add('touch');
+      }
+      document.documentElement.style.setProperty('--lens', cfg.lensSize + 'px');
 
-      // motion blur trails: fill with translucent black
-      ctx.fillStyle = 'rgba(0,0,0,' + cfg.trail + ')';
-      ctx.fillRect(0, 0, W, H);
+      var zones = document.querySelectorAll('[data-particle-zone]');
+      var tx = window.innerWidth / 2, ty = window.innerHeight / 2;
+      var x = tx, y = ty;
+      var visible = false;
+      var inZone = false;
+      var pointerOnPage = false;
+      var cursorState = window.__BF_CURSOR;
 
-      var speed   = cfg.speed;
-      var sizeMul = cfg.particleSize;
-      var shapeCfg = cfg.shape;
-      var glow    = !!cfg.glow;
+      function cursorOverZone(cx, cy) {
+        for (var i = 0; i < zones.length; i++) {
+          var r = zones[i].getBoundingClientRect();
+          if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) return true;
+        }
+        return false;
+      }
 
-      // repulsion only fires when the lens script flagged the cursor as inside a particle zone
-      var repelOn = cursor.active;
-      var cx = cursor.x * dpr;
-      var cy = cursor.y * dpr;
-      var rad = (cfg.lensSize * 0.5) * dpr;
-      var rad2 = rad * rad;
-      var slowRad = rad * 1.6;
-      var slowRad2 = slowRad * slowRad;
-      // desaturation zone: wider than the slow zone, peaks AT the lens edge
-      // (since particles can't actually get inside the repelled lens).
-      var desatRad = rad * 2.4;
-      var desatBand = desatRad - rad; // distance from lens edge → no-desat outer edge
-
-      // base + fully-desaturated colors for proximity tinting
-      var BG_R = 235, BG_G = 71, BG_B = 73;
-      var GRAY = 120; // approx luminance of the brand red
-
-      ctx.globalCompositeOperation = 'source-over';
-
-      for (var i = 0; i < particles.length; i++) {
-        var p = particles[i];
-
-        // subtle wobble forces
-        p.vx += Math.sin(t * 0.013 + p.wobbleP) * p.wobbleA * 0.4;
-        p.vy += Math.cos(t * 0.011 + p.wobbleP) * p.wobbleA * 0.4;
-
-        // cursor repulsion — strong push out, plus a hard clamp so nothing slips inside.
-        // particles also slow down + desaturate inside an influence zone around the cursor.
-        var desat = 0;                      // 0 = full red, 1 = fully gray
-        if (repelOn) {
-          var dx = p.x - cx;
-          var dy = p.y - cy;
-          var d2 = dx * dx + dy * dy;
-
-          // desaturation: peaks at the lens edge (since particles can't enter),
-          // fades to 0 by desatRad. Anything inside the lens is fully gray.
-          if (d2 < rad2) {
-            desat = 1;
+      function refreshZone() {
+        var nowIn = pointerOnPage && cursorOverZone(tx, ty);
+        if (nowIn !== inZone) {
+          inZone = nowIn;
+          document.body.classList.toggle('in-zone', inZone);
+          if (cursorState) cursorState.active = inZone;
+          if (inZone) {
+            lens.classList.remove('hidden');
+            dot.classList.remove('hidden');
           } else {
-            var dDesat = Math.sqrt(d2);
-            if (dDesat < desatRad) {
-              desat = 1 - (dDesat - rad) / desatBand;
-            }
+            lens.classList.add('hidden');
+            dot.classList.add('hidden');
           }
-
-          if (d2 < slowRad2) {
-            var dSlow = Math.sqrt(d2);
-            var proxNorm = 1 - (dSlow / slowRad);
-            var damp = 1 - 0.5 * proxNorm;            // → 0.5× at center, 1× at edge
-            p.vx *= damp;
-            p.vy *= damp;
-          }
-
-          if (d2 < rad2 && d2 > 0.0001) {
-            var d = Math.sqrt(d2);
-            var nx = dx / d;
-            var ny = dy / d;
-            // force ramps up as you get closer to the center
-            var falloff = 1 - (d / rad);
-            var force = falloff * falloff * 2.6 * dpr;
-            p.vx += nx * force;
-            p.vy += ny * force;
-            // hard clamp to the edge of the lens, with a small velocity bias outward
-            p.x = cx + nx * rad;
-            p.y = cy + ny * rad;
-            // ensure outward velocity
-            var vDotN = p.vx * nx + p.vy * ny;
-            if (vDotN < 0) {
-              p.vx -= vDotN * nx * 1.6;
-              p.vy -= vDotN * ny * 1.6;
-            }
-          }
-        }
-
-        // soft damping so velocity doesn't blow up
-        p.vx *= 0.995;
-        p.vy *= 0.995;
-
-        p.x += p.vx * speed;
-        p.y += p.vy * speed;
-        p.rot += p.vrot * speed;
-
-        // bounce off edges
-        if (p.x < 0)      { p.x = 0;     p.vx = Math.abs(p.vx); }
-        else if (p.x > W) { p.x = W;     p.vx = -Math.abs(p.vx); }
-        if (p.y < 0)      { p.y = 0;     p.vy = Math.abs(p.vy); }
-        else if (p.y > H) { p.y = H;     p.vy = -Math.abs(p.vy); }
-
-        var r = p.r * sizeMul;
-        // resolve shape: if cfg.shape names a valid icon use it, else use this particle's own (mixed) shape
-        var shape = ICON_PATHS[shapeCfg] ? shapeCfg : p.shape;
-
-        if (glow) {
-          ctx.shadowBlur = r * 2.2;
-          ctx.shadowColor = p.color;
-        } else {
-          ctx.shadowBlur = 0;
-        }
-        ctx.fillStyle = p.color;
-
-        var path = ICON_PATHS[shape];
-        if (path) {
-          // proximity-based desaturation: lerp the red toward neutral gray.
-          var rCol, gCol, bCol;
-          if (desat > 0) {
-            var s = desat * desat * (3 - 2 * desat); // smoothstep
-            rCol = BG_R + (GRAY - BG_R) * s;
-            gCol = BG_G + (GRAY - BG_G) * s;
-            bCol = BG_B + (GRAY - BG_B) * s;
-          } else {
-            rCol = BG_R; gCol = BG_G; bCol = BG_B;
-          }
-          ctx.save();
-          ctx.translate(p.x, p.y);
-          // circle background — slightly larger than the icon
-          ctx.fillStyle = 'rgb(' + (rCol|0) + ',' + (gCol|0) + ',' + (bCol|0) + ')';
-          ctx.beginPath();
-          ctx.arc(0, 0, r * 1.35, 0, Math.PI * 2);
-          ctx.fill();
-          // white icon on top — scaled smaller for more padding inside the circle
-          ctx.rotate(p.rot);
-          ctx.scale(r * 0.72, r * 0.72);
-          ctx.fillStyle = '#ffffff';
-          ctx.fill(path);
-          ctx.restore();
         }
       }
 
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.shadowBlur = 0;
-
-      raf = requestAnimationFrame(frame);
-    }
-    var raf = requestAnimationFrame(frame);
-
-    // expose for tweaks
-    window.__BF = { rebuild: rebuild };
-  })();
-</script>
-
-<script>
-  // ---------- cursor lens ----------
-  (function () {
-    var lens = document.getElementById('lens');
-    var dot  = document.getElementById('cursor-dot');
-    var hasFinePointer = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
-    var isTouch = !hasFinePointer;
-    if (isTouch) {
-      document.body.classList.add('touch');
-    }
-    document.documentElement.style.setProperty('--lens', cfg.lensSize + 'px');
-
-    var zones = document.querySelectorAll('[data-particle-zone]');
-    var tx = window.innerWidth / 2, ty = window.innerHeight / 2;
-    var x = tx, y = ty;
-    var visible = false;
-    var inZone = false;
-    var pointerOnPage = false;
-    var cursorState = window.__BF_CURSOR;
-
-    function cursorOverZone(cx, cy) {
-      for (var i = 0; i < zones.length; i++) {
-        var r = zones[i].getBoundingClientRect();
-        if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) return true;
+      function loop() {
+        x += (tx - x) * 0.22;
+        y += (ty - y) * 0.22;
+        var size = lens.offsetWidth || parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--lens')) || 340;
+        lens.style.transform = 'translate3d(' + (x - size / 2) + 'px, ' + (y - size / 2) + 'px, 0)';
+        dot.style.transform = 'translate3d(' + (tx - 5) + 'px, ' + (ty - 5) + 'px, 0)';
+        requestAnimationFrame(loop);
       }
-      return false;
-    }
 
-    function refreshZone() {
-      var nowIn = pointerOnPage && cursorOverZone(tx, ty);
-      if (nowIn !== inZone) {
-        inZone = nowIn;
-        document.body.classList.toggle('in-zone', inZone);
-        if (cursorState) cursorState.active = inZone;
-        if (inZone) {
-          lens.classList.remove('hidden');
-          dot.classList.remove('hidden');
-        } else {
-          lens.classList.add('hidden');
-          dot.classList.add('hidden');
-        }
-      }
-    }
-
-    function loop() {
-      x += (tx - x) * 0.22;
-      y += (ty - y) * 0.22;
-      var size = lens.offsetWidth || parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--lens')) || 340;
-      lens.style.transform = 'translate3d(' + (x - size/2) + 'px, ' + (y - size/2) + 'px, 0)';
-      dot.style.transform = 'translate3d(' + (tx - 5) + 'px, ' + (ty - 5) + 'px, 0)';
-      requestAnimationFrame(loop);
-    }
-
-    window.addEventListener('mousemove', function (e) {
-      tx = e.clientX; ty = e.clientY;
-      pointerOnPage = true;
-      if (cursorState) { cursorState.x = e.clientX; cursorState.y = e.clientY; }
-      refreshZone();
-    }, { passive: true });
-
-    window.addEventListener('mouseleave', function () {
-      pointerOnPage = false;
-      refreshZone();
-    });
-    window.addEventListener('blur', function () {
-      pointerOnPage = false;
-      refreshZone();
-    });
-
-    // scroll changes which element sits under a stationary cursor
-    window.addEventListener('scroll', refreshZone, { passive: true });
-    window.addEventListener('resize', refreshZone);
-
-    document.addEventListener('mousedown', function () { lens.classList.add('grow'); });
-    document.addEventListener('mouseup',   function () { lens.classList.remove('grow'); });
-
-    // Touch event handlers for mobile drag
-    var touchActive = false;
-    document.addEventListener('touchstart', function (e) {
-      if (e.touches.length === 1) {
-        touchActive = true;
-        var touch = e.touches[0];
-        tx = touch.clientX;
-        ty = touch.clientY;
+      window.addEventListener('mousemove', function (e) {
+        tx = e.clientX; ty = e.clientY;
         pointerOnPage = true;
-        if (cursorState) {
-          cursorState.x = touch.clientX;
-          cursorState.y = touch.clientY;
-        }
+        if (cursorState) { cursorState.x = e.clientX; cursorState.y = e.clientY; }
         refreshZone();
-        lens.classList.add('grow');
-      }
-    }, { passive: true });
+      }, { passive: true });
 
-    document.addEventListener('touchmove', function (e) {
-      if (touchActive && e.touches.length === 1) {
-        var touch = e.touches[0];
-        tx = touch.clientX;
-        ty = touch.clientY;
-        pointerOnPage = true;
-        if (cursorState) {
-          cursorState.x = touch.clientX;
-          cursorState.y = touch.clientY;
-        }
+      window.addEventListener('mouseleave', function () {
+        pointerOnPage = false;
         refreshZone();
-      }
-    }, { passive: true });
-
-    document.addEventListener('touchend', function () {
-      touchActive = false;
-      pointerOnPage = false;
-      lens.classList.remove('grow');
-      refreshZone();
-    }, { passive: true });
-
-    document.addEventListener('touchcancel', function () {
-      touchActive = false;
-      pointerOnPage = false;
-      lens.classList.remove('grow');
-      refreshZone();
-    }, { passive: true });
-
-    loop();
-  })();
-</script>
-
-<script>
-  // ---------- tweaks panel ----------
-  (function () {
-    var panel = document.getElementById('tweaks');
-    var closeBtn = document.getElementById('tw-close');
-
-    function fmt(key, v) {
-      if (key === 'speed' || key === 'particleSize') return (+v).toFixed(2) + '×';
-      if (key === 'lensSize') return Math.round(v) + 'px';
-      if (key === 'trail') {
-        var n = +v;
-        if (n < 0.06) return 'long';
-        if (n < 0.15) return 'medium';
-        if (n < 0.3)  return 'short';
-        return 'crisp';
-      }
-      if (key === 'particleCount') return Math.round(v);
-      return v;
-    }
-
-    function apply(key, v) {
-      cfg[key] = v;
-      if (key === 'particleCount') window.__BF && window.__BF.rebuild();
-      if (key === 'lensSize') document.documentElement.style.setProperty('--lens', v + 'px');
-      var lab = panel.querySelector('[data-val="' + key + '"]');
-      if (lab) lab.textContent = fmt(key, v);
-    }
-
-    function setSeg(key, v) {
-      apply(key, v);
-      panel.querySelectorAll('[data-seg="' + key + '"] .seg-btn').forEach(function (b) {
-        b.classList.toggle('on', b.getAttribute('data-val') === v);
       });
-    }
+      window.addEventListener('blur', function () {
+        pointerOnPage = false;
+        refreshZone();
+      });
 
-    function setToggle(key, v) {
-      cfg[key] = !!v;
-      var btn = panel.querySelector('.toggle[data-key="' + key + '"]');
-      if (btn) {
-        btn.classList.toggle('on', !!v);
-        btn.setAttribute('aria-pressed', v ? 'true' : 'false');
+      // scroll changes which element sits under a stationary cursor
+      window.addEventListener('scroll', refreshZone, { passive: true });
+      window.addEventListener('resize', refreshZone);
+
+      document.addEventListener('mousedown', function () { lens.classList.add('grow'); });
+      document.addEventListener('mouseup', function () { lens.classList.remove('grow'); });
+
+      // Touch event handlers for mobile drag
+      var touchActive = false;
+      document.addEventListener('touchstart', function (e) {
+        if (e.touches.length === 1) {
+          touchActive = true;
+          var touch = e.touches[0];
+          tx = touch.clientX;
+          ty = touch.clientY;
+          pointerOnPage = true;
+          if (cursorState) {
+            cursorState.x = touch.clientX;
+            cursorState.y = touch.clientY;
+          }
+          refreshZone();
+          lens.classList.add('grow');
+        }
+      }, { passive: true });
+
+      document.addEventListener('touchmove', function (e) {
+        if (touchActive && e.touches.length === 1) {
+          var touch = e.touches[0];
+          tx = touch.clientX;
+          ty = touch.clientY;
+          pointerOnPage = true;
+          if (cursorState) {
+            cursorState.x = touch.clientX;
+            cursorState.y = touch.clientY;
+          }
+          refreshZone();
+        }
+      }, { passive: true });
+
+      document.addEventListener('touchend', function () {
+        touchActive = false;
+        pointerOnPage = false;
+        lens.classList.remove('grow');
+        refreshZone();
+      }, { passive: true });
+
+      document.addEventListener('touchcancel', function () {
+        touchActive = false;
+        pointerOnPage = false;
+        lens.classList.remove('grow');
+        refreshZone();
+      }, { passive: true });
+
+      loop();
+    })();
+  </script>
+
+  <script>
+    // ---------- tweaks panel ----------
+    (function () {
+      var panel = document.getElementById('tweaks');
+      var closeBtn = document.getElementById('tw-close');
+
+      function fmt(key, v) {
+        if (key === 'speed' || key === 'particleSize') return (+v).toFixed(2) + '×';
+        if (key === 'lensSize') return Math.round(v) + 'px';
+        if (key === 'trail') {
+          var n = +v;
+          if (n < 0.06) return 'long';
+          if (n < 0.15) return 'medium';
+          if (n < 0.3) return 'short';
+          return 'crisp';
+        }
+        if (key === 'particleCount') return Math.round(v);
+        return v;
       }
-    }
 
-    function persist(edits) {
-      try {
-        window.parent.postMessage({ type: '__edit_mode_set_keys', edits: edits }, '*');
-      } catch (e) {}
-    }
+      function apply(key, v) {
+        cfg[key] = v;
+        if (key === 'particleCount') window.__BF && window.__BF.rebuild();
+        if (key === 'lensSize') document.documentElement.style.setProperty('--lens', v + 'px');
+        var lab = panel.querySelector('[data-val="' + key + '"]');
+        if (lab) lab.textContent = fmt(key, v);
+      }
 
-    // wire sliders
-    panel.querySelectorAll('input[type="range"][data-key]').forEach(function (input) {
-      var key = input.getAttribute('data-key');
-      input.value = cfg[key];
-      apply(key, +input.value);
-      input.addEventListener('input', function () {
+      function setSeg(key, v) {
+        apply(key, v);
+        panel.querySelectorAll('[data-seg="' + key + '"] .seg-btn').forEach(function (b) {
+          b.classList.toggle('on', b.getAttribute('data-val') === v);
+        });
+      }
+
+      function setToggle(key, v) {
+        cfg[key] = !!v;
+        var btn = panel.querySelector('.toggle[data-key="' + key + '"]');
+        if (btn) {
+          btn.classList.toggle('on', !!v);
+          btn.setAttribute('aria-pressed', v ? 'true' : 'false');
+        }
+      }
+
+      function persist(edits) {
+        try {
+          window.parent.postMessage({ type: '__edit_mode_set_keys', edits: edits }, '*');
+        } catch (e) { }
+      }
+
+      // wire sliders
+      panel.querySelectorAll('input[type="range"][data-key]').forEach(function (input) {
+        var key = input.getAttribute('data-key');
+        input.value = cfg[key];
         apply(key, +input.value);
-      });
-      input.addEventListener('change', function () {
-        var edits = {}; edits[key] = +input.value; persist(edits);
-      });
-    });
-
-    // wire segmented
-    panel.querySelectorAll('[data-seg]').forEach(function (seg) {
-      var key = seg.getAttribute('data-seg');
-      setSeg(key, cfg[key]);
-      seg.querySelectorAll('.seg-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          var v = btn.getAttribute('data-val');
-          setSeg(key, v);
-          var edits = {}; edits[key] = v; persist(edits);
+        input.addEventListener('input', function () {
+          apply(key, +input.value);
+        });
+        input.addEventListener('change', function () {
+          var edits = {}; edits[key] = +input.value; persist(edits);
         });
       });
-    });
 
-    // wire toggles
-    panel.querySelectorAll('.toggle[data-key]').forEach(function (btn) {
-      var key = btn.getAttribute('data-key');
-      setToggle(key, cfg[key]);
-      btn.addEventListener('click', function () {
-        setToggle(key, !cfg[key]);
-        var edits = {}; edits[key] = cfg[key]; persist(edits);
+      // wire segmented
+      panel.querySelectorAll('[data-seg]').forEach(function (seg) {
+        var key = seg.getAttribute('data-seg');
+        setSeg(key, cfg[key]);
+        seg.querySelectorAll('.seg-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var v = btn.getAttribute('data-val');
+            setSeg(key, v);
+            var edits = {}; edits[key] = v; persist(edits);
+          });
+        });
       });
-    });
 
-    // host protocol — register listener BEFORE announcing availability
-    function open() {
-      panel.classList.add('open');
-      document.body.classList.add('tweaks-open');
-      var toggleBtn = document.getElementById('tweaks-toggle');
-      if (toggleBtn) toggleBtn.classList.add('active');
-    }
-    function close() {
-      panel.classList.remove('open');
-      document.body.classList.remove('tweaks-open');
-      var toggleBtn = document.getElementById('tweaks-toggle');
-      if (toggleBtn) toggleBtn.classList.remove('active');
-      try { window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*'); } catch (e) {}
-    }
-    closeBtn.addEventListener('click', close);
+      // wire toggles
+      panel.querySelectorAll('.toggle[data-key]').forEach(function (btn) {
+        var key = btn.getAttribute('data-key');
+        setToggle(key, cfg[key]);
+        btn.addEventListener('click', function () {
+          setToggle(key, !cfg[key]);
+          var edits = {}; edits[key] = cfg[key]; persist(edits);
+        });
+      });
 
-    // toggle button
-    var toggleBtn = document.getElementById('tweaks-toggle');
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', function () {
-        if (panel.classList.contains('open')) {
-          close();
-          toggleBtn.classList.remove('active');
+      // host protocol — register listener BEFORE announcing availability
+      function open() {
+        panel.classList.add('open');
+        document.body.classList.add('tweaks-open');
+        var toggleBtn = document.getElementById('tweaks-toggle');
+        if (toggleBtn) toggleBtn.classList.add('active');
+      }
+      function close() {
+        panel.classList.remove('open');
+        document.body.classList.remove('tweaks-open');
+        var toggleBtn = document.getElementById('tweaks-toggle');
+        if (toggleBtn) toggleBtn.classList.remove('active');
+        try { window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*'); } catch (e) { }
+      }
+      closeBtn.addEventListener('click', close);
+
+      // toggle button
+      var toggleBtn = document.getElementById('tweaks-toggle');
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', function () {
+          if (panel.classList.contains('open')) {
+            close();
+            toggleBtn.classList.remove('active');
+          } else {
+            open();
+            toggleBtn.classList.add('active');
+          }
+        });
+      }
+
+      window.addEventListener('message', function (ev) {
+        var d = ev && ev.data;
+        if (!d || typeof d !== 'object') return;
+        if (d.type === '__activate_edit_mode') open();
+        if (d.type === '__deactivate_edit_mode') close();
+      });
+
+      function announce() {
+        try { window.parent.postMessage({ type: '__edit_mode_available' }, '*'); } catch (e) { }
+      }
+      announce();
+      // re-announce in case the host attached after our first call
+      setTimeout(announce, 100);
+      setTimeout(announce, 500);
+      setTimeout(announce, 1500);
+      window.addEventListener('load', announce);
+    })();
+  </script>
+  <script>
+    // ---------- mobile menu toggle ----------
+    (function () {
+      var menuBtn = document.getElementById('menu-btn');
+      var mobileMenu = document.getElementById('mobile-menu');
+      var menuBackdrop = document.getElementById('menu-backdrop');
+
+      if (!menuBtn || !mobileMenu || !menuBackdrop) return;
+
+      function openMenu() {
+        mobileMenu.classList.add('open');
+        menuBackdrop.classList.add('visible');
+        menuBtn.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeMenu() {
+        mobileMenu.classList.remove('open');
+        menuBackdrop.classList.remove('visible');
+        menuBtn.classList.remove('open');
+        document.body.style.overflow = '';
+      }
+
+      menuBtn.addEventListener('click', function () {
+        if (mobileMenu.classList.contains('open')) {
+          closeMenu();
         } else {
-          open();
-          toggleBtn.classList.add('active');
+          openMenu();
         }
       });
-    }
 
-    window.addEventListener('message', function (ev) {
-      var d = ev && ev.data;
-      if (!d || typeof d !== 'object') return;
-      if (d.type === '__activate_edit_mode')   open();
-      if (d.type === '__deactivate_edit_mode') close();
-    });
+      // Close menu when clicking backdrop
+      menuBackdrop.addEventListener('click', closeMenu);
 
-    function announce() {
-      try { window.parent.postMessage({ type: '__edit_mode_available' }, '*'); } catch (e) {}
-    }
-    announce();
-    // re-announce in case the host attached after our first call
-    setTimeout(announce, 100);
-    setTimeout(announce, 500);
-    setTimeout(announce, 1500);
-    window.addEventListener('load', announce);
-  })();
-</script>
-<script>
-  // ---------- mobile menu toggle ----------
-  (function () {
-    var menuBtn = document.getElementById('menu-btn');
-    var mobileMenu = document.getElementById('mobile-menu');
-    var menuBackdrop = document.getElementById('menu-backdrop');
-
-    if (!menuBtn || !mobileMenu || !menuBackdrop) return;
-
-    function openMenu() {
-      mobileMenu.classList.add('open');
-      menuBackdrop.classList.add('visible');
-      menuBtn.classList.add('open');
-      document.body.style.overflow = 'hidden';
-    }
-
-    function closeMenu() {
-      mobileMenu.classList.remove('open');
-      menuBackdrop.classList.remove('visible');
-      menuBtn.classList.remove('open');
-      document.body.style.overflow = '';
-    }
-
-    menuBtn.addEventListener('click', function () {
-      if (mobileMenu.classList.contains('open')) {
-        closeMenu();
-      } else {
-        openMenu();
-      }
-    });
-
-    // Close menu when clicking backdrop
-    menuBackdrop.addEventListener('click', closeMenu);
-
-    // Close menu when clicking a link
-    mobileMenu.querySelectorAll('a').forEach(function (link) {
-      link.addEventListener('click', function () {
-        closeMenu();
+      // Close menu when clicking a link
+      mobileMenu.querySelectorAll('a').forEach(function (link) {
+        link.addEventListener('click', function () {
+          closeMenu();
+        });
       });
-    });
 
-    // Close menu on escape key
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && mobileMenu.classList.contains('open')) {
-        closeMenu();
-      }
-    });
-  })();
-</script>
-<script>
-  // ---------- before/after reveal — tap to peek for 5s ----------
-  (function () {
-    var REVEAL_MS = 5000;
-    document.querySelectorAll('.ig.after').forEach(function (card) {
-      var media = card.querySelector('.ig-media');
-      if (!media) return;
-      var pill = card.querySelector('.ig-reveal-pill');
-      var revealTimer = null;
-      var countdownTimer = null;
-      var origPill = pill ? pill.textContent : '';
+      // Close menu on escape key
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && mobileMenu.classList.contains('open')) {
+          closeMenu();
+        }
+      });
+    })();
+  </script>
+  <script>
+    // ---------- before/after reveal — tap to peek for 5s ----------
+    (function () {
+      var REVEAL_MS = 5000;
+      document.querySelectorAll('.ig.after').forEach(function (card) {
+        var media = card.querySelector('.ig-media');
+        if (!media) return;
+        var pill = card.querySelector('.ig-reveal-pill');
+        var revealTimer = null;
+        var countdownTimer = null;
+        var origPill = pill ? pill.textContent : '';
 
-      media.addEventListener('click', function () {
-        clearTimeout(revealTimer);
-        clearInterval(countdownTimer);
-        card.classList.add('revealed');
-
-        var remaining = Math.ceil(REVEAL_MS / 1000);
-        revealTimer = setTimeout(function () {
-          card.classList.remove('revealed');
-          if (pill) pill.textContent = origPill;
+        media.addEventListener('click', function () {
+          clearTimeout(revealTimer);
           clearInterval(countdownTimer);
-        }, REVEAL_MS);
+          card.classList.add('revealed');
+
+          var remaining = Math.ceil(REVEAL_MS / 1000);
+          revealTimer = setTimeout(function () {
+            card.classList.remove('revealed');
+            if (pill) pill.textContent = origPill;
+            clearInterval(countdownTimer);
+          }, REVEAL_MS);
+        });
       });
-    });
-  })();
-</script>
+    })();
+  </script>
 
 </body>
+
 </html>
