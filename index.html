@@ -476,6 +476,95 @@
       border-color: white;
     }
 
+    /* ---------- browser modal ---------- */
+    .browser-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: modalFadeIn 0.2s ease-out;
+    }
+
+    @keyframes modalFadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    .browser-modal-content {
+      background: #111;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 32px;
+      max-width: 480px;
+      width: 100%;
+      animation: modalSlideUp 0.25s ease-out;
+    }
+
+    @keyframes modalSlideUp {
+      from {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .browser-modal-content h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--fg);
+      letter-spacing: -0.01em;
+    }
+
+    .browser-modal-content p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    .browser-modal-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .browser-modal-actions .btn {
+      flex: 1;
+      min-width: 140px;
+      justify-content: center;
+    }
+
+    @media (max-width: 600px) {
+      .browser-modal-content {
+        padding: 24px;
+      }
+
+      .browser-modal-content h3 {
+        font-size: 16px;
+      }
+
+      .browser-modal-actions {
+        flex-direction: column;
+      }
+
+      .browser-modal-actions .btn {
+        width: 100%;
+      }
+    }
+
     body.touch .btn:active {
       transform: scale(0.98);
     }
@@ -1985,7 +2074,7 @@
     </p>
 
     <div class="cta-row">
-      <a class="btn" href="#install">Add to Chrome &nbsp;→</a>
+      <a class="btn" href="https://chromewebstore.google.com/detail/betterfeed/iccefadbbjnknplfbhkadnfnhcgolbkf" target="_blank" rel="noopener noreferrer">Add to Chrome &nbsp;→</a>
       <a class="btn ghost" href="#how">How it works</a>
     </div>
   </section>
@@ -2855,6 +2944,97 @@
           }, REVEAL_MS);
         });
       });
+    })();
+  </script>
+
+  <script>
+    // ---------- browser detection & CTA personalization ----------
+    (function () {
+      function detectBrowser() {
+        var ua = navigator.userAgent.toLowerCase();
+        if (ua.indexOf('chrome') > -1 && ua.indexOf('edg') === -1 && ua.indexOf('opr') === -1) {
+          return 'chrome';
+        } else if (ua.indexOf('firefox') > -1) {
+          return 'firefox';
+        } else if (ua.indexOf('safari') > -1 && ua.indexOf('chrome') === -1) {
+          return 'safari';
+        } else if (ua.indexOf('edg') > -1) {
+          return 'edge';
+        } else if (ua.indexOf('opr') > -1 || ua.indexOf('opera') > -1) {
+          return 'opera';
+        }
+        return 'other';
+      }
+
+      var browser = detectBrowser();
+      var ctaButton = document.querySelector('.cta-row .btn');
+
+      if (!ctaButton) return;
+
+      if (browser !== 'chrome') {
+        // Update button text for non-Chrome users
+        ctaButton.textContent = 'Chrome Only (For Now)';
+        ctaButton.removeAttribute('href');
+        ctaButton.style.cursor = 'pointer';
+
+        // Show modal on click
+        ctaButton.addEventListener('click', function (e) {
+          e.preventDefault();
+          showBrowserModal(browser);
+        });
+      }
+
+      function showBrowserModal(browserName) {
+        var browserDisplay = {
+          'firefox': 'Firefox',
+          'safari': 'Safari',
+          'edge': 'Edge',
+          'opera': 'Opera',
+          'other': 'your browser'
+        }[browserName] || 'your browser';
+
+        // Create modal
+        var modal = document.createElement('div');
+        modal.className = 'browser-modal';
+        modal.innerHTML =
+          '<div class="browser-modal-content">' +
+            '<h3>BETTERFEED is currently Chrome-only</h3>' +
+            '<p>We\'re working on ' + browserDisplay + ' support. It\'s coming soon!</p>' +
+            '<div class="browser-modal-actions">' +
+              '<a href="https://chromewebstore.google.com/detail/betterfeed/iccefadbbjnknplfbhkadnfnhcgolbkf" target="_blank" rel="noopener noreferrer" class="btn">Visit Chrome Store Anyway</a>' +
+              '<button class="btn ghost browser-modal-close">Close</button>' +
+            '</div>' +
+          '</div>';
+
+        document.body.appendChild(modal);
+
+        // Add close handlers
+        function closeModal() {
+          modal.remove();
+          document.removeEventListener('keydown', handleEscape);
+        }
+
+        function handleEscape(e) {
+          if (e.key === 'Escape') {
+            closeModal();
+          }
+        }
+
+        modal.querySelector('.browser-modal-close').addEventListener('click', closeModal);
+
+        modal.addEventListener('click', function (e) {
+          if (e.target === modal) {
+            closeModal();
+          }
+        });
+
+        document.addEventListener('keydown', handleEscape);
+
+        // Focus trap for accessibility
+        setTimeout(function () {
+          modal.querySelector('.btn').focus();
+        }, 100);
+      }
     })();
   </script>
 
